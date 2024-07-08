@@ -1,4 +1,5 @@
 ollama
+chromadb
 streamlit 
 pdfplumber 
 langchain
