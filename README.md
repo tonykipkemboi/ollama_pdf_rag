@@ -84,4 +84,4 @@ This project is open source and available under the MIT License.
 
 ---
 
-Built with ❤️ by Tony Kipkemboi
+Built with ❤️ by [Tony Kipkemboi](https://x.com/tonykipkemboi)
