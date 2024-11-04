@@ -49,6 +49,9 @@ streamlit run streamlit_app.py
 ```
 Then open your browser to `http://localhost:8501`
 
+![Streamlit UI](st_app_ui.png)
+*Streamlit interface showing PDF viewer and chat functionality*
+
 #### Option 2: Jupyter Notebook
 ```bash
 jupyter notebook
