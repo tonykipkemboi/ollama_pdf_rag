@@ -81,6 +81,40 @@ Feel free to:
 - Verify Python environment is activated
 - For Windows users, ensure WSL2 is properly configured if using Ollama
 
+### Common Errors
+
+#### ONNX DLL Error
+If you encounter this error:
+```
+DLL load failed while importing onnx_copy2py_export: a dynamic link Library (DLL) initialization routine failed.
+```
+
+Try these solutions:
+1. Install Microsoft Visual C++ Redistributable:
+   - Download and install both x64 and x86 versions from [Microsoft's official website](https://learn.microsoft.com/en-us/cpp/windows/latest-supported-vc-redist)
+   - Restart your computer after installation
+
+2. If the error persists, try installing ONNX Runtime manually:
+   ```bash
+   pip uninstall onnxruntime onnxruntime-gpu
+   pip install onnxruntime
+   ```
+
+#### CPU-Only Systems
+If you're running on a CPU-only system:
+
+1. Ensure you have the CPU version of ONNX Runtime:
+   ```bash
+   pip uninstall onnxruntime-gpu  # Remove GPU version if installed
+   pip install onnxruntime  # Install CPU-only version
+   ```
+
+2. You may need to modify the chunk size in the code to prevent memory issues:
+   - Reduce `chunk_size` to 500-1000 if you experience memory problems
+   - Increase `chunk_overlap` for better context preservation
+
+Note: The application will run slower on CPU-only systems, but it will still work effectively.
+
 ## 📝 License
 
 This project is open source and available under the MIT License.
