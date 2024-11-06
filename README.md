@@ -121,7 +121,7 @@ This project is open source and available under the MIT License.
 
 ---
 
-## Star History
+## ⭐️ Star History
 
 [![Star History Chart](https://api.star-history.com/svg?repos=tonykipkemboi/ollama_pdf_rag&type=Date)](https://star-history.com/#tonykipkemboi/ollama_pdf_rag&Date)
 
