@@ -22,7 +22,20 @@ from langchain_core.output_parsers import StrOutputParser
 from langchain_ollama.chat_models import ChatOllama
 from langchain_core.runnables import RunnablePassthrough
 from langchain.retrievers.multi_query import MultiQueryRetriever
+from langchain_core.documents import Document
+from langchain.text_splitter import MarkdownHeaderTextSplitter
+from langchain_community.document_loaders import WebBaseLoader
+from langchain_community.document_loaders import DirectoryLoader
+from langchain_community.document_loaders import UnstructuredMarkdownLoader
 from typing import List, Tuple, Dict, Any, Optional
+
+# ub_a_bis_z_urls = [
+#     'https://www.tu-braunschweig.de/ub/ausleihen-onlinezugriff',
+#     'https://www.tu-braunschweig.de/ub/wir-ueber-uns/ub-von-a-z/allegro-c'
+#     ]
+
+ub_a_bis_z_urls = ['https://www.tu-braunschweig.de/ub/wir-ueber-uns/ub-von-a-z/allegro-c']
+
 
 # Set protobuf environment variable to avoid error messages
 # This might cause some issues with latency but it's a tradeoff
@@ -102,6 +115,11 @@ def create_vector_db(file_upload) -> Chroma:
     logger.info(f"Temporary directory {temp_dir} removed")
     return vector_db
 
+def create_docs_from_urls(urls) -> List[Document]:
+    loader = WebBaseLoader(ub_a_bis_z_urls)
+    docs = loader.load()
+    return docs
+
 
 def process_question(question: str, vector_db: Chroma, selected_model: str) -> str:
     """
@@ -159,25 +177,6 @@ def process_question(question: str, vector_db: Chroma, selected_model: str) -> s
     return response
 
 
-@st.cache_data
-def extract_all_pages_as_images(file_upload) -> List[Any]:
-    """
-    Extract all pages from a PDF file as images.
-
-    Args:
-        file_upload (st.UploadedFile): Streamlit file upload object containing the PDF.
-
-    Returns:
-        List[Any]: A list of image objects representing each page of the PDF.
-    """
-    logger.info(f"Extracting all pages as images from file: {file_upload.name}")
-    pdf_pages = []
-    with pdfplumber.open(file_upload) as pdf:
-        pdf_pages = [page.to_image().original for page in pdf.pages]
-    logger.info("PDF pages extracted as images")
-    return pdf_pages
-
-
 def delete_vector_db(vector_db: Optional[Chroma]) -> None:
     """
     Delete the vector database and clear related session state.
@@ -198,12 +197,26 @@ def delete_vector_db(vector_db: Optional[Chroma]) -> None:
         st.error("No vector database found to delete.")
         logger.warning("Attempted to delete vector DB, but none was found")
 
+# Taken from:
+# https://github.com/andrea-nuzzo/markdown-langchain-rag/blob/main/DocumentManager.py
+def load_documents() -> List[Document]:
+    loader = loader = DirectoryLoader("./documents", glob="./*.md", show_progress=True, loader_cls=UnstructuredMarkdownLoader)
+    return loader.load()
+
+def split_documents(docs) -> List[Document]:
+    headers_to_split_on = [("#", "Header 1"), ("##", "Header 2"), ("###", "Header 3"), ("####", "Header 4")]
+    text_splitter = MarkdownHeaderTextSplitter(headers_to_split_on=headers_to_split_on)
+    all_sections = list()
+    for doc in docs:
+        sections = text_splitter.split_text(doc.page_content)
+        all_sections.extend(sections)
+    return all_sections
 
 def main() -> None:
     """
     Main function to run the Streamlit application.
     """
-    st.subheader("🧠 Ollama PDF RAG playground", divider="gray", anchor=False)
+    st.subheader("🧠 Ollama UB RAG playground", divider="gray", anchor=False)
 
     # Get available models
     models_info = ollama.list()
@@ -228,75 +241,30 @@ def main() -> None:
             key="model_select"
         )
 
-    # Add checkbox for sample PDF
-    use_sample = col1.toggle(
-        "Use sample PDF (Scammer Agent Paper)", 
-        key="sample_checkbox"
-    )
-    
-    # Clear vector DB if switching between sample and upload
-    if use_sample != st.session_state.get("use_sample"):
-        if st.session_state["vector_db"] is not None:
-            st.session_state["vector_db"].delete_collection()
-            st.session_state["vector_db"] = None
-            st.session_state["pdf_pages"] = None
-        st.session_state["use_sample"] = use_sample
+    # Temp always regenerate
+    #delete_vector_db(st.session_state["vector_db"]) 
 
-    if use_sample:
-        # Use the sample PDF
-        sample_path = "scammer-agent.pdf"
-        if os.path.exists(sample_path):
+    if st.session_state["vector_db"] is None:
+        # docs = create_docs_from_urls(ub_a_bis_z_urls)
+        docs = load_documents()
+        if docs:
+            logger.info(docs[0].metadata)
+            logger.info(docs[0].page_content)
             if st.session_state["vector_db"] is None:
-                with st.spinner("Processing sample PDF..."):
-                    loader = UnstructuredPDFLoader(file_path=sample_path)
-                    data = loader.load()
-                    text_splitter = RecursiveCharacterTextSplitter(chunk_size=7500, chunk_overlap=100)
-                    chunks = text_splitter.split_documents(data)
-                    st.session_state["vector_db"] = Chroma.from_documents(
-                        documents=chunks,
-                        embedding=OllamaEmbeddings(model="nomic-embed-text"),
-                        collection_name="myRAG"
-                    )
-                    # Open and display the sample PDF
-                    with pdfplumber.open(sample_path) as pdf:
-                        pdf_pages = [page.to_image().original for page in pdf.pages]
-                        st.session_state["pdf_pages"] = pdf_pages
+                # text_splitter = RecursiveCharacterTextSplitter(chunk_size=7500, chunk_overlap=100)
+                # chunks = text_splitter.split_documents(sections)
+                chunks = split_documents(docs)
+                st.session_state["vector_db"] = Chroma.from_documents(
+                    documents=chunks,
+                    embedding=OllamaEmbeddings(model="nomic-embed-text"),
+                    collection_name="myRAG"
+                )
         else:
-            st.error("Sample PDF file not found in the current directory.")
-    else:
-        # Regular file upload with unique key
-        file_upload = col1.file_uploader(
-            "Upload a PDF file ↓", 
-            type="pdf", 
-            accept_multiple_files=False,
-            key="pdf_uploader"
-        )
+            st.error("No website data found.")
 
-        if file_upload:
-            if st.session_state["vector_db"] is None:
-                with st.spinner("Processing uploaded PDF..."):
-                    st.session_state["vector_db"] = create_vector_db(file_upload)
-                    pdf_pages = extract_all_pages_as_images(file_upload)
-                    st.session_state["pdf_pages"] = pdf_pages
+    
+    # col1.markdown("Dies ist ein Test")
 
-    # Display PDF if pages are available
-    if "pdf_pages" in st.session_state and st.session_state["pdf_pages"]:
-        # PDF display controls
-        zoom_level = col1.slider(
-            "Zoom Level", 
-            min_value=100, 
-            max_value=1000, 
-            value=700, 
-            step=50,
-            key="zoom_slider"
-        )
-
-        # Display PDF pages
-        with col1:
-            with st.container(height=410, border=True):
-                # Removed the key parameter from st.image()
-                for page_image in st.session_state["pdf_pages"]:
-                    st.image(page_image, width=zoom_level)
 
     # Delete collection button
     delete_collection = col1.button(
