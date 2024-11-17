@@ -268,7 +268,7 @@ def main() -> None:
 
     # Delete collection button
     delete_collection = col1.button(
-        "⚠️ Delete collection", 
+        "📚 Reload data", 
         type="secondary",
         key="delete_button"
     )
