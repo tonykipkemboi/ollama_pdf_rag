@@ -8,9 +8,6 @@ and then ask questions about the content using a selected language model.
 import streamlit as st
 import logging
 import os
-import tempfile
-import shutil
-import pdfplumber
 import ollama
 
 from langchain_community.document_loaders import UnstructuredPDFLoader
@@ -77,43 +74,6 @@ def extract_model_names(
     logger.info(f"Extracted model names: {model_names}")
     return model_names
 
-
-def create_vector_db(file_upload) -> Chroma:
-    """
-    Create a vector database from an uploaded PDF file.
-
-    Args:
-        file_upload (st.UploadedFile): Streamlit file upload object containing the PDF.
-
-    Returns:
-        Chroma: A vector store containing the processed document chunks.
-    """
-    logger.info(f"Creating vector DB from file upload: {file_upload.name}")
-    temp_dir = tempfile.mkdtemp()
-
-    path = os.path.join(temp_dir, file_upload.name)
-    with open(path, "wb") as f:
-        f.write(file_upload.getvalue())
-        logger.info(f"File saved to temporary path: {path}")
-        loader = UnstructuredPDFLoader(path)
-        data = loader.load()
-
-    text_splitter = RecursiveCharacterTextSplitter(chunk_size=7500, chunk_overlap=100)
-    chunks = text_splitter.split_documents(data)
-    logger.info("Document split into chunks")
-
-    # Updated embeddings configuration
-    embeddings = OllamaEmbeddings(model="nomic-embed-text")
-    vector_db = Chroma.from_documents(
-        documents=chunks,
-        embedding=embeddings,
-        collection_name="myRAG"
-    )
-    logger.info("Vector DB created")
-
-    shutil.rmtree(temp_dir)
-    logger.info(f"Temporary directory {temp_dir} removed")
-    return vector_db
 
 def create_docs_from_urls(urls) -> List[Document]:
     loader = WebBaseLoader(ub_a_bis_z_urls)
@@ -248,8 +208,10 @@ def main() -> None:
         # docs = create_docs_from_urls(ub_a_bis_z_urls)
         docs = load_documents()
         if docs:
-            logger.info(docs[0].metadata)
-            logger.info(docs[0].page_content)
+            for doc in docs:
+                logger.info(doc.metadata)
+                # logger.info(doc.page_content)
+                
             if st.session_state["vector_db"] is None:
                 # text_splitter = RecursiveCharacterTextSplitter(chunk_size=7500, chunk_overlap=100)
                 # chunks = text_splitter.split_documents(sections)
