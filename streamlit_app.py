@@ -117,11 +117,12 @@ def process_question(question: str, vector_db: Chroma, selected_model: str) -> s
     )
 
     # RAG prompt template
-    template = """Answer the question based ONLY on the following context:
+    template = """Du bist eine künstliche Intelligenz, die in der Universitätsbibliothek (UB) der Technischen Universität Braunscheig (TUBS) arbeitet. Vor diesem Hintergrund, beantworten Sie die Frage NUR auf der Grundlage des folgenden Kontextes:
     {context}
     Question: {question}
     """
-
+    
+    # Create prompt
     prompt = ChatPromptTemplate.from_template(template)
 
     # Create chain
