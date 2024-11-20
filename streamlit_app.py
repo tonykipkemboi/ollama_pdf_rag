@@ -26,6 +26,12 @@ from langchain_community.document_loaders import DirectoryLoader
 from langchain_community.document_loaders import UnstructuredMarkdownLoader
 from typing import List, Tuple, Dict, Any, Optional
 
+# add missing pysqlite3  pysqlite3-binary
+__import__('pysqlite3')
+import sys
+sys.modules['sqlite3'] = sys.modules.pop('pysqlite3')
+
+
 # ub_a_bis_z_urls = [
 #     'https://www.tu-braunschweig.de/ub/ausleihen-onlinezugriff',
 #     'https://www.tu-braunschweig.de/ub/wir-ueber-uns/ub-von-a-z/allegro-c'
