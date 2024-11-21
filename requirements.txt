@@ -13,3 +13,6 @@ protobuf==3.20.3
 chromadb==0.4.22
 Pillow
 numpy
+streamlit
+pysqlite3-binary
+
