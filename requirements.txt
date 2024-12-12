@@ -1,4 +1,5 @@
 ollama
+streamlit
 gradio
 pdfplumber 
 langchain
