@@ -2,6 +2,8 @@
 
 A powerful local RAG (Retrieval Augmented Generation) application that lets you chat with your PDF documents using Ollama and LangChain. This project includes both a Jupyter notebook for experimentation and a Streamlit web interface for easy interaction.
 
+[![Python Tests](https://github.com/tonykipkemboi/ollama_pdf_rag/actions/workflows/tests.yml/badge.svg)](https://github.com/tonykipkemboi/ollama_pdf_rag/actions/workflows/tests.yml)
+
 ## Project Structure
 ```
 ollama_pdf_rag/
@@ -182,8 +184,6 @@ The project uses GitHub Actions for CI. On every push and pull request:
 - Dependencies are installed
 - Ollama models are pulled
 - Test results are uploaded as artifacts
-
-[![Python Tests](https://github.com/tonykipkemboi/ollama_pdf_rag/actions/workflows/tests.yml/badge.svg)](https://github.com/tonykipkemboi/ollama_pdf_rag/actions/workflows/tests.yml)
 
 ## 📝 License
 
