@@ -2,6 +2,32 @@
 
 A powerful local RAG (Retrieval Augmented Generation) application that lets you chat with your PDF documents using Ollama and LangChain. This project includes both a Jupyter notebook for experimentation and a Streamlit web interface for easy interaction.
 
+## Project Structure
+```
+ollama_pdf_rag/
+├── src/                      # Source code
+│   ├── app/                  # Streamlit application
+│   │   ├── components/       # UI components
+│   │   │   ├── chat.py      # Chat interface
+│   │   │   ├── pdf_viewer.py # PDF display
+│   │   │   └── sidebar.py   # Sidebar controls
+│   │   └── main.py          # Main app
+│   └── core/                 # Core functionality
+│       ├── document.py       # Document processing
+│       ├── embeddings.py     # Vector embeddings
+│       ├── llm.py           # LLM setup
+│       └── rag.py           # RAG pipeline
+├── data/                     # Data storage
+│   ├── pdfs/                # PDF storage
+│   │   └── sample/          # Sample PDFs
+│   └── vectors/             # Vector DB storage
+├── notebooks/               # Jupyter notebooks
+│   └── experiments/         # Experimental notebooks
+├── tests/                   # Unit tests
+├── docs/                    # Documentation
+└── run.py                   # Application runner
+```
+
 ## 📺 Video Tutorial
 <a href="https://youtu.be/ztBJqzBU5kc">
   <img src="https://img.youtube.com/vi/ztBJqzBU5kc/hqdefault.jpg" alt="Watch the video" width="100%">
@@ -24,7 +50,7 @@ A powerful local RAG (Retrieval Augmented Generation) application that lets you 
    - Visit [Ollama's website](https://ollama.ai) to download and install
    - Pull required models:
      ```bash
-     ollama pull llama2  # or your preferred model
+     ollama pull llama3.2  # or your preferred model
      ollama pull nomic-embed-text
      ```
 
@@ -41,11 +67,22 @@ A powerful local RAG (Retrieval Augmented Generation) application that lets you 
    pip install -r requirements.txt
    ```
 
+   Key dependencies and their versions:
+   ```txt
+   ollama==0.4.4
+   streamlit==1.40.0
+   pdfplumber==0.11.4
+   langchain==0.1.20
+   langchain-core==0.1.53
+   langchain-ollama==0.0.2
+   chromadb==0.4.22
+   ```
+
 ### 🎮 Running the Application
 
 #### Option 1: Streamlit Interface
 ```bash
-streamlit run streamlit_app.py
+python run.py
 ```
 Then open your browser to `http://localhost:8501`
 
@@ -115,6 +152,39 @@ If you're running on a CPU-only system:
 
 Note: The application will run slower on CPU-only systems, but it will still work effectively.
 
+## 🧪 Testing
+
+### Running Tests
+```bash
+# Run all tests
+python -m unittest discover tests
+
+# Run tests verbosely
+python -m unittest discover tests -v
+```
+
+### Pre-commit Hooks
+The project uses pre-commit hooks to ensure code quality. To set up:
+
+```bash
+pip install pre-commit
+pre-commit install
+```
+
+This will:
+- Run tests before each commit
+- Run linting checks
+- Ensure code quality standards are met
+
+### Continuous Integration
+The project uses GitHub Actions for CI. On every push and pull request:
+- Tests are run on multiple Python versions (3.9, 3.10, 3.11)
+- Dependencies are installed
+- Ollama models are pulled
+- Test results are uploaded as artifacts
+
+[![Python Tests](https://github.com/tonykipkemboi/ollama_pdf_rag/actions/workflows/tests.yml/badge.svg)](https://github.com/tonykipkemboi/ollama_pdf_rag/actions/workflows/tests.yml)
+
 ## 📝 License
 
 This project is open source and available under the MIT License.
@@ -125,4 +195,6 @@ This project is open source and available under the MIT License.
 
 [![Star History Chart](https://api.star-history.com/svg?repos=tonykipkemboi/ollama_pdf_rag&type=Date)](https://star-history.com/#tonykipkemboi/ollama_pdf_rag&Date)
 
-Built with ❤️ by [Tony Kipkemboi](https://x.com/tonykipkemboi)
+Built with ❤️ by [Tony Kipkemboi!](https://tonykipkemboi.com)
+
+Follow me on [X](https://x.com/tonykipkemboi) | [LinkedIn](https://www.linkedin.com/in/tonykipkemboi/) | [YouTube](https://www.youtube.com/@tonykipkemboi) | [GitHub](https://github.com/tonykipkemboi)

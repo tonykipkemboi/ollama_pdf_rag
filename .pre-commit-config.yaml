@@ -1,0 +1,15 @@
+repos:
+-   repo: local
+    hooks:
+    -   id: python-tests
+        name: Python Tests
+        entry: python -m unittest discover tests
+        language: system
+        pass_filenames: false
+        always_run: true
+    -   id: python-lint
+        name: Python Lint
+        entry: pylint
+        language: system
+        types: [python]
+        exclude: '^tests/|^venv/|^\.venv/' 
