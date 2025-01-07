@@ -1,0 +1,78 @@
+site_name: Ollama PDF RAG
+site_description: Chat with your PDFs locally using Ollama and LangChain
+site_author: Tony Kipkemboi
+repo_url: https://github.com/tonykipkemboi/ollama_pdf_rag
+repo_name: tonykipkemboi/ollama_pdf_rag
+
+theme:
+  name: material
+  features:
+    - navigation.tabs
+    - navigation.sections
+    - navigation.expand
+    - navigation.top
+    - search.suggest
+    - search.highlight
+    - content.tabs.link
+    - content.code.copy
+  language: en
+  palette:
+    - scheme: default
+      toggle:
+        icon: material/toggle-switch-off-outline
+        name: Switch to dark mode
+      primary: teal
+      accent: purple
+    - scheme: slate
+      toggle:
+        icon: material/toggle-switch
+        name: Switch to light mode
+      primary: teal
+      accent: lime
+
+plugins:
+  - search
+  - mkdocstrings:
+      default_handler: python
+      handlers:
+        python:
+          paths: [src]
+          options:
+            show_source: true
+            show_root_heading: true
+
+markdown_extensions:
+  - pymdownx.highlight:
+      anchor_linenums: true
+  - pymdownx.inlinehilite
+  - pymdownx.snippets
+  - admonition
+  - pymdownx.arithmatex:
+      generic: true
+  - footnotes
+  - pymdownx.details
+  - pymdownx.superfences
+  - pymdownx.mark
+  - attr_list
+  - pymdownx.emoji:
+      emoji_index: !!python/name:material.extensions.emoji.twemoji
+      emoji_generator: !!python/name:material.extensions.emoji.to_svg
+
+nav:
+  - Home: index.md
+  - Getting Started:
+    - Installation: getting-started/installation.md
+    - Quick Start: getting-started/quickstart.md
+  - User Guide:
+    - PDF Processing: user-guide/pdf-processing.md
+    - RAG Pipeline: user-guide/rag-pipeline.md
+    - Chat Interface: user-guide/chat-interface.md
+  - API Reference:
+    - Document Processing: api/document.md
+    - RAG Pipeline: api/rag.md
+    - LLM Manager: api/llm.md
+    - Embeddings: api/embeddings.md
+  - Development:
+    - Contributing: development/contributing.md
+    - Testing: development/testing.md
+    - Release Notes: development/changelog.md 
