@@ -24,3 +24,8 @@ data/vectors/
 *.log
 .cache
 .pytest_cache/
+
+# Coverage files
+.coverage
+htmlcov/
+coverage.xml
