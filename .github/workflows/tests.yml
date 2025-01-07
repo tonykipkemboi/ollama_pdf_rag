@@ -11,7 +11,8 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: [3.9, 3.10, 3.11]
+        python-version: ["3.9", "3.10", "3.11"]
+      fail-fast: false  # Continue with other versions if one fails
 
     steps:
     - uses: actions/checkout@v3
@@ -21,28 +22,37 @@ jobs:
       with:
         python-version: ${{ matrix.python-version }}
     
+    - name: Install system dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y build-essential
+
     - name: Install Ollama
       run: |
         curl -fsSL https://ollama.com/install.sh | sh
         ollama serve &
-        sleep 10
+        sleep 15  # Give more time for Ollama to start
         ollama pull llama3.2
         ollama pull nomic-embed-text
+      continue-on-error: true  # Don't fail if model pull has issues
     
-    - name: Install dependencies
+    - name: Install Python dependencies
       run: |
         python -m pip install --upgrade pip
+        pip install pytest pytest-cov
         pip install -r requirements.txt
     
-    - name: Run tests
+    - name: Run tests with coverage
       run: |
-        python -m unittest discover tests -v
+        pytest tests/ --cov=src --cov-report=html --cov-report=term
+      env:
+        PYTHONPATH: ${{ github.workspace }}
 
     - name: Upload test results
-      if: always()
+      if: always()  # Upload even if tests fail
       uses: actions/upload-artifact@v3
       with:
-        name: test-results
+        name: test-results-${{ matrix.python-version }}
         path: |
-          .coverage
-          htmlcov/ 
+          htmlcov
+        if-no-files-found: warn  # Don't fail if no coverage files 
