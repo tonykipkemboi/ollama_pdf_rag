@@ -6,11 +6,11 @@ langchain-core==0.3.29
 langchain-ollama==0.2.2
 langchain_community==0.3.14
 langchain_text_splitters==0.3.5
-unstructured==0.16.12
-unstructured[all-docs]==0.16.12
-onnx==1.17.0
+unstructured>=0.16.12
+unstructured[all-docs]>=0.16.12
+onnx>=1.17.0
 protobuf==5.29.2
-chromadb==0.4.22
+chromadb>=0.4.22
 Pillow==10.4.0
 numpy==1.26.4
 pytest==7.4.4
