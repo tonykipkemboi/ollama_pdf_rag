@@ -8,7 +8,7 @@ logger = logging.getLogger(__name__)
 class LLMManager:
     """Manages LLM configuration and prompts."""
     
-    def __init__(self, model_name: str = "llama2"):
+    def __init__(self, model_name: str = "llama3.2"):
         self.model_name = model_name
         self.llm = ChatOllama(model=model_name)
         
