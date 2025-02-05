@@ -1,10 +1,13 @@
 """RAG pipeline implementation."""
 import logging
-from typing import Any, Dict
-from langchain_core.runnables import RunnablePassthrough
-from langchain_core.output_parsers import StrOutputParser
+from pathlib import Path
+from typing import Any
+
 from langchain.retrievers.multi_query import MultiQueryRetriever
-from .llm import LLMManager
+from langchain_core.output_parsers import StrOutputParser
+from langchain_core.runnables import RunnablePassthrough
+
+from llm import LLMManager
 
 logger = logging.getLogger(__name__)
 
@@ -49,4 +52,27 @@ class RAGPipeline:
             return self.chain.invoke(question)
         except Exception as e:
             logger.error(f"Error getting response: {e}")
-            raise 
+            raise
+
+if __name__ == '__main__':
+    from langchain_ollama import OllamaEmbeddings
+    from langchain_community.vectorstores import Chroma
+    from document import DocumentProcessor
+
+    processor = DocumentProcessor()
+    pdf_path = Path("../../data/pdfs/sample/scammer-agent.pdf")
+    documents = processor.load_pdf(pdf_path)
+    chunks = processor.split_documents(documents)
+
+    vector_db = Chroma.from_documents(
+        documents=chunks,
+        embedding=OllamaEmbeddings(model="nomic-embed-text"),
+        collection_name="local-rag"
+    )
+
+    llm_manager = LLMManager()
+    rag_pipeline = RAGPipeline(vector_db=vector_db, llm_manager=llm_manager)
+
+    question = "What is this paper about in 1 sentence?"
+    response = rag_pipeline.get_response(question)
+    print(f"Response: {response}")
