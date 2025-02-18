@@ -1,9 +1,9 @@
 import logging
+from abc import ABC, abstractmethod
 from pathlib import Path
 from typing import List
-import fitz  # PyMuPDF
-from abc import ABC, abstractmethod
 
+import fitz  # PyMuPDF
 
 logger = logging.getLogger(__name__)
 
