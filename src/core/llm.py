@@ -34,3 +34,23 @@ class LLMManager:
         Question: {question}
         """
         return ChatPromptTemplate.from_template(template)
+
+
+if __name__ == "__main__":
+    llm_manager = LLMManager()
+    query_prompt = llm_manager.get_query_prompt()
+    rag_prompt = llm_manager.get_rag_prompt()
+
+    print(f"Query prompt: {query_prompt}\n")
+    print(f"RAG prompt: {rag_prompt}")
+
+    # Basic chatting
+    messages = [
+        (
+            "system",
+            "You are a helpful assistant that translates English to French. Translate the user sentence.",
+        ),
+        ("human", "I love programming."),
+    ]
+    ai_msg = llm_manager.llm.invoke(messages)
+    print(ai_msg.content)
