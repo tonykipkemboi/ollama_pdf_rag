@@ -108,6 +108,17 @@ class LayoutPDFReaderChunkingStrategy(ChunkingStrategy):
         pass
 
 
+class CLAREDIChunkingStrategy(ChunkingStrategy):
+    """
+    Context Length Aware Ranked Elided Document Injection
+    1. READ: https://community.openai.com/t/optimal-way-to-chunk-word-document-for-rag-semantic-chunking-giving-bad-results/687396
+    2. This is more of a full RAG solution than just a chunking strategy but I added here anyways
+    """
+
+    def chunk_document(self, document_text: str) -> List[str]:
+        pass
+
+
 class DocumentProcessor:
     """
     Handles PDF document loading and processing using a specified chunking strategy.
