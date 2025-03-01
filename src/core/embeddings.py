@@ -75,7 +75,7 @@ if __name__ == "__main__":
         loader=pdf_loader, chunk_strategy=constant_chunk_strategy
     )
 
-    pdf_path = Path("../../data/pdfs/sample/CV.pdf")
+    pdf_path = Path("../../data/pdfs/CV.pdf")
     document_text = processor.load_pdf(pdf_path)
     chunks = processor.split_documents(document_text)
 

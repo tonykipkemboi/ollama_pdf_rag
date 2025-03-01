@@ -62,7 +62,7 @@ if __name__ == "__main__":
     from langchain_ollama import OllamaEmbeddings
 
     processor = DocumentProcessor()
-    pdf_path = Path("../../data/pdfs/sample/scammer-agent.pdf")
+    pdf_path = Path("../../data/pdfs/scammer-agent.pdf")
     documents = processor.load_pdf(pdf_path)
     chunks = processor.split_documents(documents)
 
