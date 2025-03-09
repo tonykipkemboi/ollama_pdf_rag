@@ -21,18 +21,14 @@ class Chunk(BaseModel):
     text: str
 
     def __repr__(self) -> str:
-        # Create a preview of the text (first 50 characters)
-        text_preview = self.text if len(self.text) <= 50 else self.text[:50] + "..."
         return (
-            f"Chunk(\n"
-            f"  id={self.id!r},\n"
-            f"  pdf_name={self.pdf_name!r},\n"
-            f"  pdf_page={self.pdf_page},\n"
-            f"  section_name={self.section_name!r},\n"
-            f"  subsection_name={self.subsection_name!r},\n"
-            f"  chunk_type={self.chunk_type!r},\n"
-            f"  text={text_preview!r}\n"
-            f")"
+            f"CHUNK {self.id}:\n"
+            f"Document={self.pdf_name!r},\n"
+            f"Page={self.pdf_page},\n"
+            f"Section={self.section_name!r},\n"
+            f"Subsection={self.subsection_name!r},\n"
+            f"Type={self.chunk_type},\n"
+            f"Text={self.text!r}\n"
         )
 
     def __str__(self) -> str:
