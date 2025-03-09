@@ -5,30 +5,31 @@ This application allows users to upload a PDF, process it,
 and then ask questions about the content using a selected language model.
 """
 
-import streamlit as st
 import logging
 import os
-import tempfile
-import shutil
-import pdfplumber
-import ollama
-import warnings
 import re
+import shutil
+import tempfile
+import warnings
+
+import ollama
+import pdfplumber
+import streamlit as st
 
 # Suppress torch warning
-warnings.filterwarnings('ignore', category=UserWarning, message='.*torch.classes.*')
+warnings.filterwarnings("ignore", category=UserWarning, message=".*torch.classes.*")
 
-from langchain_community.document_loaders import UnstructuredPDFLoader
-from langchain_ollama import OllamaEmbeddings
-from langchain_text_splitters import RecursiveCharacterTextSplitter
-from langchain_community.vectorstores import Chroma
+from typing import Any, Dict, List, Optional, Tuple
+
+from components import chat, pdf_viewer, sidebar
 from langchain.prompts import ChatPromptTemplate, PromptTemplate
-from langchain_core.output_parsers import StrOutputParser
-from langchain_ollama import ChatOllama
-from langchain_core.runnables import RunnablePassthrough
 from langchain.retrievers.multi_query import MultiQueryRetriever
-from typing import List, Tuple, Dict, Any, Optional
-from components import sidebar, pdf_viewer, chat
+from langchain_community.document_loaders import UnstructuredPDFLoader
+from langchain_community.vectorstores import Chroma
+from langchain_core.output_parsers import StrOutputParser
+from langchain_core.runnables import RunnablePassthrough
+from langchain_ollama import ChatOllama, OllamaEmbeddings
+from langchain_text_splitters import RecursiveCharacterTextSplitter
 
 # Set protobuf environment variable to avoid error messages
 # This might cause some issues with latency but it's a tradeoff
@@ -104,8 +105,9 @@ def create_vector_db(file_upload) -> Chroma:
         loader = UnstructuredPDFLoader(path)
         data = loader.load()
 
-    text_splitter = RecursiveCharacterTextSplitter(chunk_size=CHUNK_SIZE,
-                                                   chunk_overlap=CHUNK_OVERLAP)
+    text_splitter = RecursiveCharacterTextSplitter(
+        chunk_size=CHUNK_SIZE, chunk_overlap=CHUNK_OVERLAP
+    )
     chunks = text_splitter.split_documents(data)
     logger.info("Document split into chunks")
 
@@ -115,7 +117,7 @@ def create_vector_db(file_upload) -> Chroma:
         documents=chunks,
         embedding=embeddings,
         persist_directory=PERSIST_DIRECTORY,
-        collection_name=f"pdf_{hash(file_upload.name)}"  # Unique collection name per file
+        collection_name=f"pdf_{hash(file_upload.name)}",  # Unique collection name per file
     )
     logger.info("Vector DB created with persistent storage")
 
@@ -154,14 +156,14 @@ def process_question(question: str, vector_db: Chroma, selected_model: str) -> s
 
     # Set up retriever
     retriever = MultiQueryRetriever.from_llm(
-        vector_db.as_retriever(),
-        llm,
-        prompt=QUERY_PROMPT
+        vector_db.as_retriever(), llm, prompt=QUERY_PROMPT
     )
 
     # 🔹 **Manually Retrieve Context for Debugging**
     retrieved_docs = retriever.invoke(question)  # Retrieve documents
-    retrieved_context = "\n\n".join([doc.page_content for doc in retrieved_docs])  # Extract text
+    retrieved_context = "\n\n".join(
+        [doc.page_content for doc in retrieved_docs]
+    )  # Extract text
 
     # logger.info(f"Retrieved Context:\n{retrieved_context}")  # Log the retrieved context
 
@@ -179,10 +181,10 @@ def process_question(question: str, vector_db: Chroma, selected_model: str) -> s
 
     # Create chain
     chain = (
-            {"context": retriever, "question": RunnablePassthrough()}
-            | prompt
-            | llm
-            | StrOutputParser()
+        {"context": retriever, "question": RunnablePassthrough()}
+        | prompt
+        | llm
+        | StrOutputParser()
     )
 
     response = chain.invoke(question)
@@ -264,16 +266,13 @@ def main() -> None:
         selected_model = col2.selectbox(
             "Pick a model available locally on your system ↓",
             available_models,
-            key="model_select"
+            key="model_select",
         )
 
     st.sidebar.header("Upload & Zoom")
 
     # Add checkbox for sample PDF
-    use_sample = st.sidebar.toggle(
-        "Use sample PDF (CV.pdf)",
-        key="sample_checkbox"
-    )
+    use_sample = st.sidebar.toggle("Use sample PDF (CV.pdf)", key="sample_checkbox")
 
     # Clear vector DB if switching between sample and upload
     if use_sample != st.session_state.get("use_sample"):
@@ -291,19 +290,21 @@ def main() -> None:
                 with st.spinner("Processing sample PDF..."):
                     loader = UnstructuredPDFLoader(file_path=sample_path)
                     data = loader.load()
-                    text_splitter = RecursiveCharacterTextSplitter(chunk_size=CHUNK_SIZE,
-                                                                   chunk_overlap=CHUNK_OVERLAP)
+                    text_splitter = RecursiveCharacterTextSplitter(
+                        chunk_size=CHUNK_SIZE, chunk_overlap=CHUNK_OVERLAP
+                    )
                     chunks = text_splitter.split_documents(data)
                     st.session_state["vector_db"] = Chroma.from_documents(
                         documents=chunks,
                         embedding=OllamaEmbeddings(model="nomic-embed-text"),
                         persist_directory=PERSIST_DIRECTORY,
-                        collection_name="sample_pdf"
+                        collection_name="sample_pdf",
                     )
                     # Open and display the sample PDF
                     with pdfplumber.open(sample_path) as pdf:
-                        st.session_state["pdf_pages"] = [page.to_image().original for page in
-                                                         pdf.pages]
+                        st.session_state["pdf_pages"] = [
+                            page.to_image().original for page in pdf.pages
+                        ]
         else:
             st.error("Sample PDF file not found in the current directory.")
     else:
@@ -312,7 +313,7 @@ def main() -> None:
             "Upload a PDF file ↓",
             type="pdf",
             accept_multiple_files=False,
-            key="pdf_uploader"
+            key="pdf_uploader",
         )
 
         if file_upload:
@@ -323,8 +324,9 @@ def main() -> None:
                     st.session_state["file_upload"] = file_upload
                     # Extract and store PDF pages
                     with pdfplumber.open(file_upload) as pdf:
-                        st.session_state["pdf_pages"] = [page.to_image().original for page in
-                                                         pdf.pages]
+                        st.session_state["pdf_pages"] = [
+                            page.to_image().original for page in pdf.pages
+                        ]
 
     # Display PDF if pages are available
     if "pdf_pages" in st.session_state and st.session_state["pdf_pages"]:
@@ -335,7 +337,7 @@ def main() -> None:
             max_value=1000,
             value=700,
             step=50,
-            key="zoom_slider"
+            key="zoom_slider",
         )
 
         # Display PDF pages
@@ -346,9 +348,7 @@ def main() -> None:
 
     # Delete collection button
     delete_collection = col1.button(
-        "⚠️ Delete collection",
-        type="secondary",
-        key="delete_button"
+        "⚠️ Delete collection", type="secondary", key="delete_button"
     )
 
     if delete_collection:
