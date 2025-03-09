@@ -89,7 +89,7 @@ class ConstantLengthChunkStrategy(ChunkingStrategy):
                 pdf_name=pdf_name,
                 pdf_page=pdf_page,
                 section_name=None,  # TODO: Implement section detection
-                subsection_name=None,  #TODO: Implement subsection detection
+                subsection_name=None,  # TODO: Implement subsection detection
                 chunk_type=ChunkType.TEXT,
                 text=text_chunk,
             )
@@ -228,7 +228,9 @@ if __name__ == "__main__":
 
     # Example 2: Using the paragraph-based chunk strategy
     paragraph_chunk_strategy = ParagraphChunkStrategy(delimiter="\n\n")
-    processor_paragraph = DocumentProcessor(loader=pdf_loader, chunk_strategy=paragraph_chunk_strategy)
+    processor_paragraph = DocumentProcessor(
+        loader=pdf_loader, chunk_strategy=paragraph_chunk_strategy
+    )
 
     paragraph_chunks = processor_paragraph.process_pdf(pdf_path)
     print(f"Number of chunks (paragraph strategy): {len(paragraph_chunks)}")
