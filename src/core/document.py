@@ -1,4 +1,5 @@
 import logging
+import re
 from abc import ABC, abstractmethod
 from pathlib import Path
 from typing import List, Tuple
@@ -145,18 +146,98 @@ class ParagraphChunkStrategy(ChunkingStrategy):
 
 class AdvancedParagraphChunkStrategy(ChunkingStrategy):
     """
-    Future implementation:
-    1. Isolate tables and image captions as individual chunks.
-    2. Label each chunk accordingly.
-    3. Split remaining text into paragraphs, with further splitting if too long.
-    4. Experiment with overlaps and bulletpoints.
+    Splits document into (sub)sections. Each (sub)section is a separate chunk.
+    This approach requires that the pdf file contains a table of contents.
+
+    [I] _extract_section_names(): We extract, from up to down, the (sub)section names from the table of contents.
+    The extraction using regex "^(?:([\d.]+)\s*)?\n?([A-Za-z][\w\s–-]+?)\s+\.{5,}\s*(\d+)":
+                                            (a) (?:([\d.]+)\s*)?\n? - captures numbers like 3, 1.2 or 1.12 with or
+                                                without whitespace. The symbol "?" behind the parentheses makes the
+                                                numbers optional, which means that chapters without numbers like
+                                                "Introduction" can also be extracted. \n? is optional newline.
+                                            (b) ([A-Za-z][\w\s–-]+?) - section title with some extra flexibility.
+                                            (c) \s+\.{5,}\s* - at least 10 dots between the section title and the page
+                                                number.
+                                            (d) (\d+) - page number.
+    [II] _find_section_occurrences(): We look for the next occurrence next_{i+1} of extracted (sub)section i+1.
+    To accept the next match, the following has to be satisfied:
+                                            (a) next_{i+1} is preceded and followed by \n;
+                                            (b) next_{i+1} is not a bullet point;
+                                            (c) next_{i+1} comes after next_{i}.
+    [III] chunk_document(): Parsing the pdf according to the starting/ending indices of each next_{i}
+    [IV] _create_chunk(): Creates the chunk object.
     """
 
     def chunk_document(
         self, document_text: str, pdf_name: str, page_starts: List[Tuple[int, int]]
     ) -> List[Chunk]:
-        # Implementation can be added later.
-        pass
+        sections = self._find_section_occurrences(document_text)
+
+        sections.append(("END", len(document_text)))
+
+        chunks = []
+        for i, (start_sec, next_sec) in enumerate(zip(sections, sections[1:])):
+            chunk = self._create_chunk(
+                document_text=document_text,
+                pdf_name=pdf_name,
+                page_starts=page_starts,
+                chunk_index=i + 1,
+                start_section=start_sec,
+                end_section=next_sec
+            )
+            chunks.append(chunk)
+
+        return chunks
+
+    def _extract_section_names(self, document_text: str) -> List[str]:
+        matches = re.findall(
+            r"^(?:([\d.]+)\s*)?\n?([A-Za-z][\w\s–-]+?)\s+\.{5,}\s*(\d+)",
+            document_text,
+            re.MULTILINE,
+        )
+        return [match[1].strip().split("\n")[-1] for match in matches]
+
+    def _find_section_occurrences(self, document_text: str) -> List[Tuple[str, int]]:
+        section_names = self._extract_section_names(document_text)
+        occurrences = []
+        start_index = 0
+        for name in section_names:
+            pattern = rf"(?<!•\s)\n{re.escape(name)} \n"
+            match = re.search(pattern, document_text[start_index:])
+            if not match:
+                print(f"Section not found: {name}")
+                continue
+            pos = start_index + match.start()
+            occurrences.append((name, pos))
+            start_index = pos
+        return occurrences
+
+    def _create_chunk(
+        self,
+        document_text: str,
+        pdf_name: str,
+        page_starts: List[Tuple[int, int]],
+        chunk_index: int,
+        start_section: Tuple[str, int],
+        end_section: Tuple[str, int] = None,
+    ) -> Chunk:
+        section_name, start_index = start_section
+        end_index = end_section[1] if end_section else None
+        chunk_text = document_text[start_index:end_index].strip()
+
+        if not chunk_text:
+            return None
+
+        pdf_page = get_page_for_offset(start_index, page_starts)
+        return Chunk(
+            id=f"{pdf_name}-{chunk_index}",
+            pdf_name=pdf_name,
+            pdf_page=pdf_page,
+            section_name=section_name,
+            subsection_name=None,
+            chunk_type=ChunkType.TEXT,
+            text=chunk_text,
+        )
 
 
 class LayoutPDFReaderChunkingStrategy(ChunkingStrategy):
@@ -209,8 +290,10 @@ if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)
     pdf_loader = PDFLoader()
 
-    pdf_path = Path("../../data/pdfs/CV.pdf")
+    pdf_path = Path("./data/pdfs/microstepexample.pdf")
+    # pdf_path = Path("./data/pdfs/CV.pdf")
 
+    """
     # Example 1: Using the constant length chunk strategy
     constant_chunk_strategy = ConstantLengthChunkStrategy(
         chunk_size=300, chunk_overlap=50
@@ -228,13 +311,28 @@ if __name__ == "__main__":
 
     # Example 2: Using the paragraph-based chunk strategy
     paragraph_chunk_strategy = ParagraphChunkStrategy(delimiter="\n\n")
-    processor_paragraph = DocumentProcessor(
-        loader=pdf_loader, chunk_strategy=paragraph_chunk_strategy
-    )
+    processor_paragraph = DocumentProcessor(loader=pdf_loader, chunk_strategy=paragraph_chunk_strategy)
 
     paragraph_chunks = processor_paragraph.process_pdf(pdf_path)
     print(f"Number of chunks (paragraph strategy): {len(paragraph_chunks)}")
     for i, chunk in enumerate(paragraph_chunks):
         print(f"--- Chunk {i+1} ---")
+        print(chunk)
+        print("\n")
+
+    """
+    # Example 3: Use the advanced paragraph chunk strategy
+    # Option A: chunk_i = (sub)section_i as extracted from the table of contents
+
+    advanced_paragraph_chunk_strategy = AdvancedParagraphChunkStrategy()
+    processor_paragraph = DocumentProcessor(
+        loader=pdf_loader, chunk_strategy=advanced_paragraph_chunk_strategy
+    )
+
+    paragraph_chunks = processor_paragraph.process_pdf(pdf_path)
+    print(f"Number of chunks (advanced paragraph strategy): {len(paragraph_chunks)}")
+
+    for i, chunk in enumerate(paragraph_chunks):
+        print(f"--- Chunk {i + 1} ---")
         print(chunk)
         print("\n")
