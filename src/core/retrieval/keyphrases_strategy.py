@@ -1,13 +1,15 @@
 from collections import Counter
-from typing import Dict, List
+from typing import List
 
 import spacy
 from base import RetrievalStrategy, ScoredChunk
 
+# TODO: duplicate in document.py!
 nlp = spacy.load("en_core_web_sm")
 
 
 def extract_content_words(text: str) -> List[str]:
+    # TODO: duplicate in document.py!
     """
     Extract content words from text using spaCy.
     Only tokens with POS tags in {NOUN, PROPN, ADJ} are considered.
@@ -24,8 +26,7 @@ def extract_content_words(text: str) -> List[str]:
 
 def compute_frequency_score(query_words: List[str], chunk_words: List[str]) -> int:
     """
-    Compute a frequency-based score as the dot product of
-    query and chunk word counts.
+    Compute a frequency-based score as the dot product of query and chunk word counts.
     """
     query_freq = Counter(query_words)
     chunk_freq = Counter(chunk_words)
@@ -34,20 +35,15 @@ def compute_frequency_score(query_words: List[str], chunk_words: List[str]) -> i
 
 
 class KeyphraseRetrievalStrategy(RetrievalStrategy):
-    def __init__(self, chunks, chunk_content_words: Dict[str, List[str]]):
-        """
-        :param chunks: List of chunk objects (each has an id, text, etc.).
-        :param chunk_content_words: Mapping from chunk ID to a list of content words (lemmas).
-        """
+    def __init__(self, chunks):
         self.chunks = chunks
-        self.chunk_content_words = chunk_content_words
 
     def retrieve(self, query: str, top_k: int) -> List[ScoredChunk]:
         query_words = extract_content_words(query)
 
         scores = {}
         for chunk in self.chunks:
-            chunk_words = self.chunk_content_words.get(chunk.id, [])
+            chunk_words = chunk.keywords
             score = compute_frequency_score(query_words, chunk_words)
             scores[chunk.id] = score
 

@@ -5,10 +5,13 @@ from pathlib import Path
 from typing import List, Tuple
 
 import fitz  # PyMuPDF
+import spacy
 
 from src.core.models import Chunk, ChunkType
 
 logger = logging.getLogger(__name__)
+
+nlp = spacy.load("en_core_web_sm")
 
 
 def get_page_for_offset(offset: int, page_starts: List[Tuple[int, int]]) -> int:
@@ -190,6 +193,20 @@ class AdvancedParagraphChunkStrategy(ChunkingStrategy):
 
         return chunks
 
+    def _extract_content_words(self, text: str) -> List[str]:
+        """
+        Extract content words from text using spaCy.
+        Only tokens with POS tags in {NOUN, PROPN, ADJ} are considered.
+        Return their lower-case lemmas (including duplicates).
+        """
+        doc = nlp(text)
+        valid_pos = {"NOUN", "PROPN", "ADJ"}
+        return [
+            token.lemma_.lower()
+            for token in doc
+            if token.pos_ in valid_pos and token.is_alpha
+        ]
+
     def _extract_section_names(self, document_text: str) -> List[str]:
         matches = re.findall(
             r"^(?:([\d.]+)\s*)?\n?([A-Za-z][\w\s–-]+?)\s+\.{5,}\s*(\d+)",
@@ -212,6 +229,19 @@ class AdvancedParagraphChunkStrategy(ChunkingStrategy):
             occurrences.append((name, pos))
             start_index = pos
         return occurrences
+
+    @staticmethod
+    def _remove_footer(text: str) -> str:
+        pattern = re.compile(
+            r"(?:\n\s+)*"  # Arbitrary number of newline+whitespace sequences
+            r"-\d+-\n"  # Page number
+            r"(?:\n\s+)*"  # Arbitrary number of newline+whitespace sequences
+            r".*?"  # Arbitrary number of characters, non-greedy
+            r"(?:\n\s+)*"  # Arbitrary number of newline+whitespace sequences
+            r"Web-site.*",  # Footer text
+            re.DOTALL,
+        )
+        return re.sub(pattern, "", text)
 
     def _create_chunk(
         self,
@@ -237,7 +267,8 @@ class AdvancedParagraphChunkStrategy(ChunkingStrategy):
             section_name=section_name,
             subsection_name=None,
             chunk_type=ChunkType.TEXT,
-            text=chunk_text,
+            text=self._remove_footer(chunk_text),
+            keywords=self._extract_content_words(chunk_text),
         )
 
 

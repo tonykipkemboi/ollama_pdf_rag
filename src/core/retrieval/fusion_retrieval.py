@@ -1,4 +1,5 @@
 import logging
+import time
 from collections import defaultdict
 from concurrent.futures import ThreadPoolExecutor
 from itertools import chain
@@ -38,6 +39,19 @@ class FusionRetrieval:
         self.max_cosine_distance = max_cosine_distance
         self.combined_threshold = combined_threshold
 
+    def retrieve(self, query: str, top_k: int) -> List[ScoredChunk]:
+        all_results = self._run_strategies(query, top_k)
+
+        fused_results = self._fuse_scores(all_results)
+        if not fused_results:
+            return []
+
+        filtered_results = self._filter_results_by_threshold(
+            fused_results, self.max_cosine_distance, self.combined_threshold
+        )
+
+        return sorted(filtered_results, key=lambda r: r.combined_score, reverse=True)
+
     def _run_strategies(self, query: str, top_k: int) -> List[ScoredChunk]:
         """Run all retrieval strategies concurrently and flatten the results."""
         with ThreadPoolExecutor() as executor:
@@ -46,29 +60,6 @@ class FusionRetrieval:
                 for strategy in self.strategies
             ]
         return list(chain.from_iterable(results_lists))
-
-    @staticmethod
-    def normalize_scores(
-        raw_scores: Dict[str, float], lower_is_better: bool
-    ) -> Dict[str, float]:
-        """
-        Normalize scores using min-max normalization to [0,1].
-        If lower_is_better is True, the normalized value is inverted.
-        If only one score exists, all normalized scores are set to 1.
-        """
-        scores = list(raw_scores.values())
-        min_val, max_val = min(scores), max(scores)
-        if max_val == min_val:
-            return {cid: 1.0 for cid in raw_scores}
-
-        norm_scores = {}
-        for cid, score in raw_scores.items():
-            if lower_is_better:
-                norm_scores[cid] = 1 - ((score - min_val) / (max_val - min_val))
-            else:
-                norm_scores[cid] = (score - min_val) / (max_val - min_val)
-
-        return norm_scores
 
     def _fuse_scores(self, results: List[ScoredChunk]) -> List[ScoredChunk]:
         """
@@ -105,8 +96,8 @@ class FusionRetrieval:
         print(f"KP Raw: {kp_raw}\n")
 
         # 3. Normalize scores.
-        norm_emb = self.normalize_scores(emb_raw, lower_is_better=True)
-        norm_kp = self.normalize_scores(kp_raw, lower_is_better=False)
+        norm_emb = self._normalize_scores(emb_raw, lower_is_better=True)
+        norm_kp = self._normalize_scores(kp_raw, lower_is_better=False)
 
         print(f"Norm Emb: {norm_emb}")
         print(f"Norm KP: {norm_kp}\n")
@@ -131,7 +122,30 @@ class FusionRetrieval:
         return fused_results
 
     @staticmethod
-    def filter_results_by_threshold(
+    def _normalize_scores(
+        raw_scores: Dict[str, float], lower_is_better: bool
+    ) -> Dict[str, float]:
+        """
+        Normalize scores using min-max normalization to [0,1].
+        If lower_is_better is True, the normalized value is inverted.
+        If only one score exists, all normalized scores are set to 1.
+        """
+        scores = list(raw_scores.values())
+        min_val, max_val = min(scores), max(scores)
+        if max_val == min_val:
+            return {cid: 1.0 for cid in raw_scores}
+
+        norm_scores = {}
+        for cid, score in raw_scores.items():
+            if lower_is_better:
+                norm_scores[cid] = 1 - ((score - min_val) / (max_val - min_val))
+            else:
+                norm_scores[cid] = (score - min_val) / (max_val - min_val)
+
+        return norm_scores
+
+    @staticmethod
+    def _filter_results_by_threshold(
         fused_results: List[ScoredChunk],
         max_cosine_distance: float,
         combined_threshold: float,
@@ -153,21 +167,9 @@ class FusionRetrieval:
             filtered.append(r)
         return filtered
 
-    def retrieve(self, query: str, top_k: int) -> List[ScoredChunk]:
-        all_results = self._run_strategies(query, top_k)
-
-        fused_results = self._fuse_scores(all_results)
-        if not fused_results:
-            return []
-
-        filtered_results = self.filter_results_by_threshold(
-            fused_results, self.max_cosine_distance, self.combined_threshold
-        )
-
-        return sorted(filtered_results, key=lambda r: r.combined_score, reverse=True)
-
 
 if __name__ == "__main__":
+    start = time.time()
     pdf_path = Path("../../../data/pdfs/microstepexample.pdf")
     pdf_loader = PDFLoader()
     advanced_paragraph_chunk_strategy = AdvancedParagraphChunkStrategy()
@@ -197,14 +199,12 @@ if __name__ == "__main__":
         for chunk in chunks
     ]
     ids = [chunk.id for chunk in chunks]
-    # Pre-compute keyphrases for each chunk using spaCy.
-    chunk_keyphrases = {chunk.id: extract_content_words(chunk.text) for chunk in chunks}
 
     vector_store = VectorStore(collection_name="local-rag")
     vector_store.create_vector_db(documents=documents, metadatas=metadatas, ids=ids)
 
     embedding_strategy = EmbeddingsRetrievalStrategy(vector_store)
-    keyphrase_strategy = KeyphraseRetrievalStrategy(chunks, chunk_keyphrases)
+    keyphrase_strategy = KeyphraseRetrievalStrategy(chunks)
 
     fusion_retriever = FusionRetrieval(
         strategies=[embedding_strategy, keyphrase_strategy],
@@ -213,10 +213,18 @@ if __name__ == "__main__":
         combined_threshold=0.4,
     )
 
+    end_time = time.time()
+    print(f"Time to create chunks: {end_time - start}")
+
+    new_start = time.time()
+
     query = """What is the IMS AWOS User Interface about?"""
 
     top_k = 7  # Maybe a bit more to make sure we get enough relevant chunks.
     fused_results = fusion_retriever.retrieve(query, top_k)
+
+    new_end = time.time()
+    print(f"Time to retrieve: {new_end - new_start}")
 
     chunk_dict = {chunk.id: chunk for chunk in chunks}
     logger.info("\n\n\nFused Retrieval Results:")

@@ -19,6 +19,7 @@ class Chunk(BaseModel):
     subsection_name: Optional[str] = None
     chunk_type: ChunkType
     text: str
+    keywords: Optional[list] = None
 
     def __repr__(self) -> str:
         return (
@@ -43,5 +44,6 @@ if __name__ == "__main__":
         section_name="Introduction",
         chunk_type=ChunkType.TEXT,
         text="This is a sample text chunk.",
+        keywords=["sample", "text", "chunk"],
     )
     print(chunk)
