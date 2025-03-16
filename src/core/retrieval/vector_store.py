@@ -1,12 +1,9 @@
-import json
 import logging
-from pathlib import Path
 from typing import List, Optional
 
 import chromadb
 from chromadb.config import Settings
 from chromadb.errors import UniqueConstraintError
-from document import ConstantLengthChunkStrategy, DocumentProcessor, PDFLoader
 
 logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO)
@@ -63,49 +60,3 @@ class VectorStore:
         except Exception as e:
             logger.error(f"Error deleting collection: {e}")
             raise
-
-
-if __name__ == "__main__":
-    # --- Load PDF and create chunks ---
-    constant_chunk_strategy = ConstantLengthChunkStrategy(
-        chunk_size=500, chunk_overlap=100
-    )
-    pdf_loader = PDFLoader()
-    processor = DocumentProcessor(
-        loader=pdf_loader, chunk_strategy=constant_chunk_strategy
-    )
-
-    pdf_path = Path("../../data/pdfs/CV.pdf")
-    document_text = processor.load_pdf(pdf_path)
-    chunks = processor.split_documents(document_text)
-
-    print(f"Number of chunks (constant strategy): {len(chunks)}")
-    for i, chunk in enumerate(chunks):
-        print(f"--- Chunk {i+1} ---")
-        print(chunk)
-        print("\n")
-
-    # --- Initialize the vector store and add the PDF chunks ---
-    vector_store = VectorStore(collection_name="local-rag")
-
-    # Use the chunks (list of strings) as the documents.
-    metadatas = [{"source": f"chunk_{i+1}"} for i in range(len(chunks))]
-    ids = [f"id_{i+1}" for i in range(len(chunks))]
-    vector_store.create_vector_db(documents=chunks, metadatas=metadatas, ids=ids)
-
-    # --- Run a query against the collection ---
-    query = "What algorithm was used to develop a set of optimised parsers?"
-    results = vector_store.collection.query(
-        query_texts=[query],
-        n_results=3,
-        include=[
-            "documents",
-            "metadatas",
-            "distances",
-        ],
-    )
-
-    print("Query Results:")
-    print(json.dumps(results, indent=4))
-
-    vector_store.delete_collection()

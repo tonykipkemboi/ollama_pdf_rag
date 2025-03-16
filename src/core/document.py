@@ -5,7 +5,8 @@ from pathlib import Path
 from typing import List, Tuple
 
 import fitz  # PyMuPDF
-from models import Chunk, ChunkType
+
+from src.core.models import Chunk, ChunkType
 
 logger = logging.getLogger(__name__)
 
@@ -183,7 +184,7 @@ class AdvancedParagraphChunkStrategy(ChunkingStrategy):
                 page_starts=page_starts,
                 chunk_index=i + 1,
                 start_section=start_sec,
-                end_section=next_sec
+                end_section=next_sec,
             )
             chunks.append(chunk)
 
@@ -290,8 +291,7 @@ if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)
     pdf_loader = PDFLoader()
 
-    pdf_path = Path("./data/pdfs/microstepexample.pdf")
-    # pdf_path = Path("./data/pdfs/CV.pdf")
+    pdf_path = Path("../../data/pdfs/microstepexample.pdf")
 
     """
     # Example 1: Using the constant length chunk strategy
