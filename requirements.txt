@@ -4,7 +4,7 @@ pdfplumber==0.11.4
 langchain==0.3.14
 langchain-core==0.3.29
 langchain-ollama==0.2.2
-langchain_community==0.3.14
+langchain_community==0.3.27
 langchain_text_splitters==0.3.5
 unstructured>=0.16.12
 unstructured[all-docs]>=0.16.12
