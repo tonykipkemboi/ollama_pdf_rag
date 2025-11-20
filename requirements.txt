@@ -2,7 +2,7 @@ ollama==0.4.4
 streamlit==1.40.0
 pdfplumber==0.11.4
 langchain==0.3.14
-langchain-core==0.3.29
+langchain-core==0.3.80
 langchain-ollama==0.2.2
 langchain_community==0.3.14
 langchain_text_splitters==0.3.5
