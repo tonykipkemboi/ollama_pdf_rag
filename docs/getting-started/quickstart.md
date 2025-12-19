@@ -1,79 +1,213 @@
 # Quick Start Guide
 
-This guide will help you get started with Ollama PDF RAG quickly.
+Get up and running with Ollama PDF RAG in 5 minutes.
 
 ## Prerequisites
 
-Ensure you have:
-- Completed the [installation](installation.md)
-- Started the Ollama service
-- Pulled the required models:
-  ```bash
-  ollama pull llama3.2
-  ollama pull nomic-embed-text
-  ```
+- [x] Completed the [installation](installation.md)
+- [x] Ollama running with models pulled
+- [x] Virtual environment activated
 
-## Starting the Application
+## Option 1: Next.js UI (Recommended)
 
-1. Activate your virtual environment:
-   ```bash
-   source venv/bin/activate  # On Windows: .\venv\Scripts\activate
-   ```
+The Next.js interface is the modern, feature-rich option.
 
-2. Start the application:
-   ```bash
-   python run.py
-   ```
+### Start Both Services
 
-3. Open your browser to `http://localhost:8501`
+```bash
+# Easy way - uses the start script
+./start_all.sh
+
+# Or manually in two terminals:
+# Terminal 1 - Backend
+python run_api.py
+
+# Terminal 2 - Frontend
+cd web-ui && pnpm dev
+```
+
+### Open the App
+
+Navigate to [http://localhost:3000](http://localhost:3000)
+
+![Next.js Interface](../assets/nextjs-chat-ui.png)
+
+### Workflow
+
+```
+1. Upload PDF     →  Click 📎 button, select PDF
+2. Select PDF     →  Check ☑️ the PDF in sidebar
+3. Ask Question   →  Type in chat box, press Enter
+4. Get Answer     →  Response with source citations
+```
+
+## Option 2: Streamlit UI (Classic)
+
+The Streamlit interface is simpler and good for quick testing.
+
+### Start the App
+
+```bash
+python run.py
+```
+
+### Open the App
+
+Navigate to [http://localhost:8501](http://localhost:8501)
+
+![Streamlit Interface](../assets/st_app_ui.png)
 
 ## Basic Usage
 
 ### 1. Upload a PDF
 
+**Next.js:**
+- Click the 📎 (paperclip) button in the chat input
+- Select your PDF file
+- Wait for processing (shown in toast notification)
+
+**Streamlit:**
 - Use the file uploader in the sidebar
-- Or try the sample PDF provided
+- Or click "Load Sample PDF"
 
-### 2. Select a Model
+### 2. Select PDFs for Context
 
-- Choose from your locally available Ollama models
-- Default is `llama3.2`
+**Next.js:**
+```
+☐ Warranty_Book.pdf (11 chunks • 1 pages)
+☑️ Security_Guide.pdf (45 chunks • 12 pages)
+```
 
-### 3. Ask Questions
+- Check the boxes next to PDFs you want to search
+- Use "All" or "None" buttons for quick selection
+- Selection persists across page refreshes
 
-- Type your question in the chat input
-- Press Enter or click Send
-- Wait for the response
+!!! warning "Important"
+    If you don't select any PDFs and ask a document question, 
+    you'll see a warning prompting you to select documents.
 
-### 4. Adjust Display
+### 3. Choose a Model
 
-- Use the zoom slider to adjust PDF visibility
-- PDF pages are displayed on the right
+Click the model selector in the chat input:
 
-### 5. Clean Up
+| Model | Best For |
+|-------|----------|
+| `llama3.2` | Fast, general purpose |
+| `qwen3:8b` | Detailed reasoning, thinking mode |
+| `mistral` | Balanced performance |
 
-- Use "Delete Collection" when switching documents
-- This ensures clean context for new documents
+### 4. Ask Questions
 
-## Example Usage
+**Good questions:**
+```
+✅ "What are the main security recommendations?"
+✅ "Summarize section 3 of the document"
+✅ "What does the warranty cover?"
+✅ "Compare the approaches mentioned in pages 5-7"
+```
 
-Here's a simple example workflow:
+**The system handles:**
+```
+📄 Document questions → Uses RAG with selected PDFs
+💬 General questions → Direct chat (no RAG needed)
+⚠️ Doc questions without PDFs → Shows warning
+```
 
-1. Upload a PDF about machine learning
-2. Ask questions like:
-   - "What are the main topics covered in this document?"
-   - "Can you explain the concept of X mentioned on page Y?"
-   - "Summarize the key findings"
+### 5. Understanding Responses
 
-## Tips
+Responses include:
 
-- Start with broad questions to understand document content
-- Be specific when asking about particular sections
-- Use follow-up questions for clarification
-- Clear the context when switching documents
+- **Answer**: The main response
+- **Sources**: Which PDF chunks were used
+- **Reasoning** (qwen3/deepseek): Chain-of-thought process
+
+Example response:
+```
+The document covers three main security aspects:
+
+1. **Authentication** - Multi-factor authentication is required...
+2. **Authorization** - Role-based access control using...
+3. **Encryption** - All data at rest uses AES-256...
+
+**Sources:**
+- Security_Guide.pdf (chunk 3)
+- Security_Guide.pdf (chunk 7)
+- Security_Guide.pdf (chunk 12)
+```
+
+## Service URLs
+
+| Service | URL | Purpose |
+|---------|-----|---------|
+| Next.js UI | http://localhost:3000 | Modern chat interface |
+| Streamlit UI | http://localhost:8501 | Classic interface |
+| FastAPI Backend | http://localhost:8001 | REST API |
+| API Docs | http://localhost:8001/docs | Swagger UI |
+| Health Check | http://localhost:8001/health | Status endpoint |
+
+## Example Session
+
+Here's a complete example workflow:
+
+```bash
+# 1. Start services
+./start_all.sh
+
+# 2. Open browser to http://localhost:3000
+
+# 3. Upload a PDF (click 📎)
+# → Select "company_policy.pdf"
+# → Wait for "uploaded successfully!" toast
+
+# 4. Select the PDF (check ☑️ in sidebar)
+# → Shows: "Documents (1/1)"
+
+# 5. Ask a question
+# → "What is the vacation policy?"
+
+# 6. Get answer with sources
+# → "According to the document, employees receive..."
+# → Sources: company_policy.pdf (chunk 5, 8)
+
+# 7. Follow up
+# → "What about sick leave?"
+# → Uses same document context
+```
+
+## Tips for Best Results
+
+### Document Preparation
+- Use text-based PDFs (not scanned images)
+- Smaller PDFs process faster
+- Split very large PDFs into sections
+
+### Asking Questions
+- Be specific: "What is X?" vs "Tell me about X"
+- Reference sections: "In the introduction..."
+- Ask follow-ups: "Can you explain more about...?"
+
+### Performance
+- Select only needed PDFs (fewer = faster)
+- Use `llama3.2` for speed, `qwen3:8b` for detail
+- Clear chat history periodically
+
+## Troubleshooting
+
+### "No PDFs uploaded yet"
+→ Click 📎 and upload a PDF first
+
+### "No documents selected"
+→ Check the ☑️ boxes next to PDFs in sidebar
+
+### Response is slow
+→ Try a smaller model or select fewer PDFs
+
+### "Model not found"
+→ Run `ollama pull <model-name>`
 
 ## Next Steps
 
-- Read the [PDF Processing Guide](../user-guide/pdf-processing.md) for advanced usage
-- Learn about the [RAG Pipeline](../user-guide/rag-pipeline.md)
-- Explore the [Chat Interface](../user-guide/chat-interface.md) 
+- [PDF Processing](../user-guide/pdf-processing.md) - How documents are chunked
+- [RAG Pipeline](../user-guide/rag-pipeline.md) - How retrieval works
+- [API Reference](../api/document.md) - Use the REST API
+- [Contributing](../development/contributing.md) - Help improve the project

@@ -11,10 +11,12 @@ theme:
     - navigation.sections
     - navigation.expand
     - navigation.top
+    - navigation.indexes
     - search.suggest
     - search.highlight
     - content.tabs.link
     - content.code.copy
+    - content.code.annotate
   language: en
   palette:
     - scheme: default
@@ -29,6 +31,8 @@ theme:
         name: Switch to light mode
       primary: teal
       accent: lime
+  icon:
+    repo: fontawesome/brands/github
 
 plugins:
   - search
@@ -40,10 +44,14 @@ plugins:
           options:
             show_source: true
             show_root_heading: true
+            show_symbol_type_heading: true
+            show_symbol_type_toc: true
 
 markdown_extensions:
   - pymdownx.highlight:
       anchor_linenums: true
+      line_spans: __span
+      pygments_lang_class: true
   - pymdownx.inlinehilite
   - pymdownx.snippets
   - admonition
@@ -51,12 +59,31 @@ markdown_extensions:
       generic: true
   - footnotes
   - pymdownx.details
-  - pymdownx.superfences
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
   - pymdownx.mark
+  - pymdownx.tabbed:
+      alternate_style: true
   - attr_list
+  - md_in_html
+  - tables
+  - toc:
+      permalink: true
   - pymdownx.emoji:
       emoji_index: !!python/name:material.extensions.emoji.twemoji
       emoji_generator: !!python/name:material.extensions.emoji.to_svg
+  - pymdownx.tasklist:
+      custom_checkbox: true
+
+extra:
+  social:
+    - icon: fontawesome/brands/github
+      link: https://github.com/tonykipkemboi/ollama_pdf_rag
+    - icon: fontawesome/brands/twitter
+      link: https://twitter.com/tonykipkemboi
 
 nav:
   - Home: index.md
@@ -68,6 +95,7 @@ nav:
     - RAG Pipeline: user-guide/rag-pipeline.md
     - Chat Interface: user-guide/chat-interface.md
   - API Reference:
+    - REST API: api/rest-api.md
     - Document Processing: api/document.md
     - RAG Pipeline: api/rag.md
     - LLM Manager: api/llm.md
@@ -75,4 +103,4 @@ nav:
   - Development:
     - Contributing: development/contributing.md
     - Testing: development/testing.md
-    - Release Notes: development/changelog.md 
+    - Release Notes: development/changelog.md
