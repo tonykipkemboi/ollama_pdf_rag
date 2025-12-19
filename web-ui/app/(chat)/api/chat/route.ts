@@ -6,8 +6,6 @@ import {
   getChatById,
   saveChat,
   saveMessages,
-  getPdfsByChatId,
-  updateChatTitleById,
 } from "@/lib/db/queries";
 import { generateUUID } from "@/lib/utils";
 
@@ -30,6 +28,22 @@ interface PostRequestBody {
   };
   selectedChatModel?: string;
   selectedVisibilityType?: string;
+  selectedPdfIds?: string[]; // PDFs selected by user
+}
+
+// Simple question classifier - checks if question likely needs document context
+function needsDocumentContext(question: string): boolean {
+  const documentKeywords = [
+    "document", "pdf", "file", "page", "section", "chapter",
+    "according to", "based on", "what does", "what is", "explain",
+    "summarize", "summary", "tell me about", "describe", "definition",
+    "content", "text", "says", "mentioned", "states", "written",
+    "this", "the document", "the file", "the pdf", "uploaded",
+    "in the", "from the", "about the"
+  ];
+  
+  const lowerQuestion = question.toLowerCase();
+  return documentKeywords.some(keyword => lowerQuestion.includes(keyword));
 }
 
 export async function POST(request: Request) {
@@ -83,9 +97,13 @@ export async function POST(request: Request) {
       console.log("Created new chat:", chatId);
     }
 
-    // Get PDFs linked to this chat (if any)
-    const chatPdfIds = await getPdfsByChatId({ chatId });
-    console.log("Chat PDF IDs:", chatPdfIds);
+    // Use PDF IDs from frontend (user's selection)
+    const selectedPdfIds = body.selectedPdfIds || [];
+    console.log("Selected PDF IDs from frontend:", selectedPdfIds);
+
+    // Check if question needs document context
+    const questionNeedsContext = needsDocumentContext(textContent);
+    console.log("Question needs document context:", questionNeedsContext);
 
     // Save user message
     const userMessageId = body.message.id || generateUUID();
@@ -101,34 +119,74 @@ export async function POST(request: Request) {
     });
     console.log("Saved user message:", userMessageId);
 
-    console.log("Sending to backend:", {
-      question: textContent,
-      model: selectedChatModel,
-      pdfIds: chatPdfIds.length > 0 ? chatPdfIds : undefined,
-    });
+    // Determine if we should use RAG or general chat
+    const useRAG = selectedPdfIds.length > 0;
+    const noPdfsButNeedsContext = selectedPdfIds.length === 0 && questionNeedsContext;
+
+    console.log("Mode:", useRAG ? "RAG" : "General Chat");
+    console.log("No PDFs but needs context:", noPdfsButNeedsContext);
 
     // Build message history (for now, just the current message)
     const messages = [{ role: body.message.role, content: textContent }];
 
-    // Query the FastAPI backend with chat-specific PDFs
-    console.log("Calling ollamaChat...");
-    const result = await ollamaChat(messages, selectedChatModel, chatPdfIds.length > 0 ? chatPdfIds : undefined);
+    let result;
+    let formattedResponse: string;
+    let reasoningSteps: string[] = [];
+
+    if (noPdfsButNeedsContext) {
+      // Warn user that no PDFs are selected
+      console.log("Warning: Question seems to need document context but no PDFs selected");
+      formattedResponse = `⚠️ **No documents selected**
+
+It looks like your question might be about a document, but you haven't selected any PDFs to search.
+
+**To get answers from your documents:**
+1. Look at the sidebar on the left
+2. Check the boxes next to the PDFs you want to use
+3. Then ask your question again
+
+**If you just want to chat without documents**, feel free to ask general questions and I'll respond based on my knowledge!
+
+---
+
+*Your question was: "${textContent}"*`;
+      
+      result = {
+        answer: formattedResponse,
+        sources: [],
+        metadata: { reasoning_steps: ["⚠️ No PDFs selected for document query"] }
+      };
+    } else if (useRAG) {
+      // Use RAG with selected PDFs
+      console.log("Sending to backend:", {
+        question: textContent,
+        model: selectedChatModel,
+        pdfIds: selectedPdfIds,
+      });
+
+      console.log("Calling ollamaChat with RAG...");
+      result = await ollamaChat(messages, selectedChatModel, selectedPdfIds);
+      
+      // Format response with sources
+      formattedResponse = `${result.answer}\n\n**Sources:**\n${result.sources
+        .map((s: any) => `- ${s.pdf_name} (chunk ${s.chunk_index})`)
+        .join("\n")}`;
+      reasoningSteps = result.metadata.reasoning_steps || [];
+    } else {
+      // General chat without RAG
+      console.log("Calling ollamaChat for general chat (no RAG)...");
+      result = await ollamaChat(messages, selectedChatModel, undefined);
+      formattedResponse = result.answer;
+      reasoningSteps = result.metadata.reasoning_steps || [];
+    }
     console.log("Received result from backend:", {
       answerLength: result.answer.length,
-      sourcesCount: result.sources.length,
-      hasReasoningSteps: !!result.metadata.reasoning_steps,
-      reasoningStepsCount: result.metadata.reasoning_steps?.length || 0,
+      sourcesCount: result.sources?.length || 0,
+      hasReasoningSteps: !!result.metadata?.reasoning_steps,
+      reasoningStepsCount: result.metadata?.reasoning_steps?.length || 0,
     });
 
-    // Extract reasoning steps from metadata
-    const reasoningSteps = result.metadata.reasoning_steps || [];
     console.log("Reasoning steps:", reasoningSteps);
-
-    // Format response with sources
-    const formattedResponse = `${result.answer}\n\n**Sources:**\n${result.sources
-      .map((s: any) => `- ${s.pdf_name} (chunk ${s.chunk_index})`)
-      .join("\n")}`;
-
     console.log("Formatted response length:", formattedResponse.length);
     console.log("First 200 chars of response:", formattedResponse.substring(0, 200));
 
@@ -184,12 +242,13 @@ export async function POST(request: Request) {
           writer.write({ type: "reasoning-end", id: reasoningId });
         }
 
-        // Write sources as custom data
-        if (result.sources && result.sources.length > 0) {
-          console.log("Writing sources:", result.sources.length);
+        // Write sources as custom data (only for RAG mode)
+        const sources = result.sources || [];
+        if (sources.length > 0) {
+          console.log("Writing sources:", sources.length);
           writer.write({
             type: "data-sources" as any,
-            data: result.sources,
+            data: sources,
           });
         }
 

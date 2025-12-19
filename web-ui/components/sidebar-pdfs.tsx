@@ -1,7 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
-import { usePathname } from "next/navigation";
+import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import useSWR from "swr";
 import {
@@ -21,8 +20,10 @@ import {
   SidebarMenuItem,
   SidebarMenuButton,
 } from "@/components/ui/sidebar";
-import { FileText, Trash2, Check } from "lucide-react";
+import { FileText, Trash2, Square, CheckSquare } from "lucide-react";
 import { fetcher } from "@/lib/utils";
+import { usePDFSelection } from "@/hooks/use-pdf-selection";
+import { Button } from "./ui/button";
 
 interface PDF {
   pdf_id: string;
@@ -35,9 +36,6 @@ interface PDF {
 }
 
 export function SidebarPDFs() {
-  const pathname = usePathname();
-  const chatId = pathname?.startsWith("/chat/") ? pathname.split("/")[2] : null;
-
   const { data: pdfs, mutate, isLoading } = useSWR<PDF[]>(
     "http://localhost:8001/api/v1/pdfs",
     fetcher,
@@ -46,47 +44,24 @@ export function SidebarPDFs() {
     }
   );
 
-  // Fetch PDFs linked to current chat
-  const { data: chatPdfsData, mutate: mutateChatPdfs } = useSWR<{ pdfIds: string[] }>(
-    chatId ? `/api/chat/${chatId}/pdfs` : null,
-    fetcher
-  );
-  const selectedPdfIds = chatPdfsData?.pdfIds || [];
+  // Use global PDF selection state (persists across chats)
+  const { selectedPdfIds, togglePdf, selectAll, clearSelection, isSelected } = usePDFSelection();
 
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
 
-  const togglePdfSelection = useCallback(async (pdfId: string) => {
-    if (!chatId) {
-      toast.error("Start a chat first to select PDFs");
-      return;
-    }
-
-    const isSelected = selectedPdfIds.includes(pdfId);
-
-    try {
-      if (isSelected) {
-        // Remove PDF from chat
-        await fetch(`/api/chat/${chatId}/pdfs`, {
-          method: "DELETE",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ pdfId }),
-        });
-        toast.success("PDF removed from chat");
-      } else {
-        // Add PDF to chat
-        await fetch(`/api/chat/${chatId}/pdfs`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ pdfId }),
-        });
-        toast.success("PDF added to chat");
+  // Clean up selected PDFs that no longer exist
+  useEffect(() => {
+    if (pdfs && selectedPdfIds.length > 0) {
+      const validPdfIds = pdfs.map((p) => p.pdf_id);
+      const validSelectedIds = selectedPdfIds.filter((id) =>
+        validPdfIds.includes(id)
+      );
+      if (validSelectedIds.length !== selectedPdfIds.length) {
+        selectAll(validSelectedIds);
       }
-      mutateChatPdfs();
-    } catch (error) {
-      toast.error("Failed to update PDF selection");
     }
-  }, [chatId, selectedPdfIds, mutateChatPdfs]);
+  }, [pdfs, selectedPdfIds, selectAll]);
 
   const handleDelete = async () => {
     const pdfToDelete = deleteId;
@@ -139,52 +114,71 @@ export function SidebarPDFs() {
     return (
       <SidebarGroup>
         <div className="px-2 py-1 text-sidebar-foreground/50 text-xs">
-          PDFs
+          📄 Documents
         </div>
         <SidebarGroupContent>
-          <div className="flex w-full flex-row items-center justify-center gap-2 px-2 py-4 text-sm text-zinc-500">
-            No PDFs uploaded yet. Use the 📎 button to upload.
+          <div className="flex w-full flex-col items-center justify-center gap-2 px-2 py-4 text-sm text-zinc-500">
+            <span>No PDFs uploaded yet.</span>
+            <span className="text-xs">Use the 📎 button to upload.</span>
           </div>
         </SidebarGroupContent>
       </SidebarGroup>
     );
   }
 
-  // Show selected count if any
+  // Show selected count
   const selectedCount = selectedPdfIds.length;
-  const headerText = chatId
-    ? `PDFs (${selectedCount}/${pdfs.length} selected)`
-    : `PDFs (${pdfs.length})`;
+  const allSelected = pdfs.length > 0 && selectedCount === pdfs.length;
 
   return (
     <>
       <SidebarGroup>
-        <div className="px-2 py-1 text-sidebar-foreground/50 text-xs">
-          {headerText}
-          {chatId && selectedCount === 0 && (
-            <span className="ml-1 text-amber-500">• Click to select</span>
-          )}
+        <div className="flex items-center justify-between px-2 py-1">
+          <span className="text-sidebar-foreground/50 text-xs">
+            📄 Documents ({selectedCount}/{pdfs.length})
+          </span>
+          <div className="flex gap-1">
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-5 px-1 text-xs"
+              onClick={() => {
+                if (allSelected) {
+                  clearSelection();
+                } else {
+                  selectAll(pdfs.map((p) => p.pdf_id));
+                }
+              }}
+            >
+              {allSelected ? "None" : "All"}
+            </Button>
+          </div>
         </div>
+        {selectedCount === 0 && (
+          <div className="px-2 pb-1 text-xs text-amber-500">
+            ⚠️ Select PDFs to use as context
+          </div>
+        )}
         <SidebarGroupContent>
           <SidebarMenu>
             {pdfs.map((pdf) => {
-              const isSelected = selectedPdfIds.includes(pdf.pdf_id);
+              const selected = isSelected(pdf.pdf_id);
               return (
                 <SidebarMenuItem key={pdf.pdf_id} className="group/pdf">
                   <div className="flex items-center justify-between">
                     <SidebarMenuButton
-                      className={`flex-1 ${isSelected ? "bg-primary/10" : ""}`}
-                      onClick={() => togglePdfSelection(pdf.pdf_id)}
+                      className={`flex-1 ${selected ? "bg-primary/10" : ""}`}
+                      onClick={() => togglePdf(pdf.pdf_id)}
                     >
                       <div className="flex items-center gap-2 overflow-hidden">
-                        <div className="relative">
-                          <FileText className={`h-4 w-4 flex-shrink-0 ${isSelected ? "text-primary" : ""}`} />
-                          {isSelected && (
-                            <Check className="absolute -right-1 -top-1 h-3 w-3 text-primary" />
-                          )}
-                        </div>
+                        {/* Checkbox icon */}
+                        {selected ? (
+                          <CheckSquare className="h-4 w-4 flex-shrink-0 text-primary" />
+                        ) : (
+                          <Square className="h-4 w-4 flex-shrink-0 text-muted-foreground" />
+                        )}
                         <div className="flex flex-col overflow-hidden">
-                          <span className={`truncate text-sm ${isSelected ? "font-medium" : ""}`}>
+                          <span className={`truncate text-sm ${selected ? "font-medium" : ""}`}>
                             {pdf.name}
                           </span>
                           <span className="text-xs text-zinc-500">

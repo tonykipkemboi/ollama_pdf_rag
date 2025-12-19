@@ -20,6 +20,7 @@ import {
 import { useArtifactSelector } from "@/hooks/use-artifact";
 import { useAutoResume } from "@/hooks/use-auto-resume";
 import { useChatVisibility } from "@/hooks/use-chat-visibility";
+import { usePDFSelection } from "@/hooks/use-pdf-selection";
 import type { Vote } from "@/lib/db/schema";
 import { ChatSDKError } from "@/lib/errors";
 import type { Attachment, ChatMessage } from "@/lib/types";
@@ -73,9 +74,17 @@ export function Chat({
   const [currentModelId, setCurrentModelId] = useState(initialChatModel);
   const currentModelIdRef = useRef(currentModelId);
 
+  // Get selected PDFs from global state
+  const { selectedPdfIds } = usePDFSelection();
+  const selectedPdfIdsRef = useRef(selectedPdfIds);
+
   useEffect(() => {
     currentModelIdRef.current = currentModelId;
   }, [currentModelId]);
+
+  useEffect(() => {
+    selectedPdfIdsRef.current = selectedPdfIds;
+  }, [selectedPdfIds]);
 
   const {
     messages,
@@ -100,6 +109,7 @@ export function Chat({
             message: request.messages.at(-1),
             selectedChatModel: currentModelIdRef.current,
             selectedVisibilityType: visibilityType,
+            selectedPdfIds: selectedPdfIdsRef.current, // Pass selected PDFs
             ...request.body,
           },
         };
