@@ -2,6 +2,50 @@
 
 All notable changes to this project will be documented in this file.
 
+## [v3.0.0] - 2025-12-19
+
+### 🚀 Major Features
+
+#### Next.js Frontend
+- **Modern Chat UI** - Beautiful, responsive chat interface built with Next.js 16 and React 19
+- **Real-time Streaming** - Live message streaming with Vercel AI SDK
+- **Chat Persistence** - SQLite database for saving all conversations
+- **PDF Selection** - Checkbox-based PDF selection before chatting
+- **Question Classification** - Auto-detects if questions need document context
+- **Model Selector** - Switch between Ollama models on the fly
+- **Theme Support** - Dark/light mode toggle
+
+#### FastAPI Backend
+- **REST API** - Production-ready API with OpenAPI docs
+- **PDF Management** - Upload, list, delete PDF endpoints
+- **RAG Query** - Multi-PDF query with source attribution
+- **Session Management** - Chat history per session
+- **Health Monitoring** - Ollama connection status
+
+#### Enhanced RAG
+- **Multi-Query Retrieval** - Generates alternative queries for better recall
+- **Thinking Models** - Support for qwen3, deepseek-r1 chain-of-thought
+- **PDF Filtering** - Query specific PDFs, not all
+- **Source Citations** - Every answer includes chunk sources
+
+### 📖 Documentation
+- **MkDocs Site** - Comprehensive documentation with Material theme
+- **API Reference** - Full REST API documentation
+- **Architecture Diagrams** - Visual pipeline explanations
+- **Screenshots** - UI screenshots in docs
+
+### 🔧 Infrastructure
+- **GitHub Actions** - Updated CI for Python 3.10-3.12
+- **Security Updates** - Patched Dependabot vulnerabilities
+- **Improved Tests** - Mocked tests without Ollama dependency
+
+### 💥 Breaking Changes
+- Python 3.9 no longer supported (requires 3.10+)
+- New FastAPI backend required on port 8001
+- Database schema changes for chat persistence
+
+---
+
 ## [v2.1.0] - 2024-01-07
 
 ### Added
@@ -35,4 +79,4 @@ All notable changes to this project will be documented in this file.
 - Basic RAG functionality
 - PDF processing capabilities
 - Streamlit interface
-- Jupyter notebook for experimentation 
+- Jupyter notebook for experimentation

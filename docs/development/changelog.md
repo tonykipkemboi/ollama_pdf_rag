@@ -2,84 +2,88 @@
 
 All notable changes to Ollama PDF RAG are documented here.
 
-## [Unreleased]
+## [v3.0.0] - 2025-12-19
 
-### Added
-- **Next.js Frontend** - Modern React-based chat interface
-  - Real-time message streaming with AI SDK
-  - Chat history persistence with SQLite
-  - PDF selection with checkboxes before chatting
-  - Question classification (RAG vs general chat)
-  - Model selector with live Ollama model detection
-  - Dark/light theme support
-  - Mobile-responsive design
+### 🚀 Major Features
 
-- **FastAPI Backend** - Production-ready REST API
-  - PDF upload and processing endpoints
-  - RAG query endpoint with multi-PDF support
-  - Model listing and health check endpoints
-  - Session-based chat history
-  - Swagger/ReDoc documentation
+#### Next.js Frontend
+- **Modern Chat UI** - Beautiful, responsive chat interface built with Next.js 16 and React 19
+- **Real-time Streaming** - Live message streaming with Vercel AI SDK
+- **Chat Persistence** - SQLite database for saving all conversations
+- **PDF Selection** - Checkbox-based PDF selection before chatting
+- **Question Classification** - Auto-detects if questions need document context
+- **Model Selector** - Switch between Ollama models on the fly
+- **Theme Support** - Dark/light mode toggle
 
-- **Enhanced RAG Pipeline**
-  - Multi-query retrieval for better results
-  - Support for thinking models (qwen3, deepseek-r1)
-  - Chain-of-thought reasoning with reasoning steps
-  - Source attribution for all answers
-  - PDF-specific filtering
+#### FastAPI Backend
+- **REST API** - Production-ready API with OpenAPI docs
+- **PDF Management** - Upload, list, delete PDF endpoints
+- **RAG Query** - Multi-PDF query with source attribution
+- **Session Management** - Chat history per session
+- **Health Monitoring** - Ollama connection status
 
-- **PDF Selection UX**
-  - Checkbox-based selection in sidebar
-  - "All/None" quick selection buttons
-  - Selection persists across page reloads
-  - Warning when no PDFs selected for document queries
+#### Enhanced RAG
+- **Multi-Query Retrieval** - Generates alternative queries for better recall
+- **Thinking Models** - Support for qwen3, deepseek-r1 chain-of-thought
+- **PDF Filtering** - Query specific PDFs, not all
+- **Source Citations** - Every answer includes chunk sources
 
-- **Question Classification**
-  - Auto-detects if question needs document context
-  - General chat mode (no RAG) for non-document questions
-  - Clear warning for document questions without PDFs
+### 📖 Documentation
+- **MkDocs Site** - Comprehensive documentation with Material theme
+- **API Reference** - Full REST API documentation
+- **Architecture Diagrams** - Visual pipeline explanations
+- **Screenshots** - UI screenshots in docs
 
-### Changed
-- Updated Python requirement to 3.10+ (LangChain 1.0 requirement)
-- CI workflow now tests Python 3.10, 3.11, 3.12
-- Removed Ollama model downloads from CI (uses mocks)
-- Upgraded all GitHub Actions to v4/v5
+### 🔧 Infrastructure
+- **GitHub Actions** - Updated CI for Python 3.10-3.12
+- **Security Updates** - Patched Dependabot vulnerabilities
+- **Improved Tests** - Mocked tests without Ollama dependency
 
-### Fixed
-- Fixed vector DB persistence in ChromaDB
-- Fixed streaming response format for AI SDK
-- Fixed CI failures due to disk space (removed model downloads)
-- Fixed deprecated `actions/upload-artifact@v3`
-
-### Security
-- Updated `next-auth` to 5.0.0-beta.30 (email misdelivery fix)
-- Updated `@playwright/test` to 1.57.0
-- Updated `protobuf` to >=5.29.5 (DoS fix)
-- Added pnpm overrides for transitive vulnerabilities
+### 💥 Breaking Changes
+- Python 3.9 no longer supported (requires 3.10+)
+- New FastAPI backend required on port 8001
+- Database schema changes for chat persistence
 
 ---
 
-## [1.0.0] - 2024-12-01
+## [v2.1.0] - 2024-01-07
 
 ### Added
-- Initial release
-- Streamlit chat interface
-- LangChain RAG implementation
-- PDF processing with UnstructuredPDFLoader
-- ChromaDB vector storage
-- Multi-query retriever
-- Ollama LLM integration
-- Jupyter notebooks for experimentation
-- MkDocs documentation site
-- GitHub Actions CI/CD
-- pytest test suite
+- Comprehensive test suite with pytest
+- GitHub Actions CI pipeline
+- Pre-commit hooks for code quality
+- Test coverage reporting
+- Project restructuring with clean architecture
+- New directory structure for better organization
+- Sample PDFs in dedicated folder
 
-### Technical Stack
-- Python 3.9+
-- Streamlit 1.40.0
-- LangChain 1.0.0
-- ChromaDB 0.4.22
-- Ollama (local LLM)
+### Changed
+- Moved all source code to src/ directory
+- Updated dependencies to latest compatible versions
+- Improved README with testing documentation
+- Added test status badge
+- Reorganized PDF storage structure
+
+### Fixed
+- Dependency conflicts with pydantic
+- ONNX runtime compatibility issues
+- Test coverage configuration
+
+---
+
+## [v2.0] - 2023-11-05
+- Major version release
+- Improved RAG implementation
+- Enhanced PDF processing
+
+---
+
+## [v1.0] - 2023-07-08
+- Initial release
+- Basic RAG functionality
+- PDF processing capabilities
+- Streamlit interface
+- Jupyter notebook for experimentation
 
 ---
 
@@ -87,12 +91,14 @@ All notable changes to Ollama PDF RAG are documented here.
 
 | Version | Date | Highlights |
 |---------|------|------------|
-| Unreleased | - | Next.js UI, FastAPI, Enhanced RAG |
-| 1.0.0 | 2024-12-01 | Initial release with Streamlit |
+| v3.0.0 | 2025-12-19 | Next.js UI, FastAPI, Enhanced RAG |
+| v2.1.0 | 2024-01-07 | Test suite, CI/CD, restructuring |
+| v2.0 | 2023-11-05 | Improved RAG, enhanced processing |
+| v1.0 | 2023-07-08 | Initial release |
 
 ## Upgrade Guide
 
-### From 1.0.0 to Unreleased
+### From v2.x to v3.0.0
 
 1. **Python Version**: Upgrade to Python 3.10+
    ```bash
@@ -128,24 +134,25 @@ All notable changes to Ollama PDF RAG are documented here.
 
 The Next.js UI uses a separate SQLite database for chat history:
 - Location: `web-ui/data/chat.db`
-- Contains: chats, messages, users, votes
+- Contains: chats, messages, users
 
 The FastAPI backend uses:
 - Location: `data/api.db`
 - Contains: PDF metadata, chat sessions
 
-### Breaking Changes
+### Breaking Changes in v3.0.0
 
 - Python 3.9 is no longer supported
-- Streamlit app now runs on port 8501 (was default)
+- Streamlit app now runs on port 8501
 - New FastAPI backend required on port 8001
+- New dependency: Node.js 18+ and pnpm
 
 ## Roadmap
 
-### Planned Features
+### Upcoming Features
 
 - [ ] Image extraction from PDFs
-- [ ] OCR support for scanned documents
+- [ ] OCR support for scanned documents  
 - [ ] Multi-user authentication
 - [ ] Document comparison mode
 - [ ] Export chat history
