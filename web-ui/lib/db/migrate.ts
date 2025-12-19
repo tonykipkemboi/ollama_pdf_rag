@@ -1,27 +1,46 @@
 import { config } from "dotenv";
-import { drizzle } from "drizzle-orm/postgres-js";
-import { migrate } from "drizzle-orm/postgres-js/migrator";
-import postgres from "postgres";
+import { drizzle } from "drizzle-orm/better-sqlite3";
+import { migrate } from "drizzle-orm/better-sqlite3/migrator";
+import Database from "better-sqlite3";
+import { join } from "path";
+import { mkdirSync } from "fs";
 
 config({
   path: ".env.local",
 });
 
 const runMigrate = async () => {
-  if (!process.env.POSTGRES_URL) {
-    throw new Error("POSTGRES_URL is not defined");
+  // Ensure data directory exists
+  const dataDir = join(process.cwd(), "data");
+  try {
+    mkdirSync(dataDir, { recursive: true });
+  } catch {
+    // Directory may already exist
   }
 
-  const connection = postgres(process.env.POSTGRES_URL, { max: 1 });
-  const db = drizzle(connection);
+  const dbPath = join(dataDir, "chat.db");
+  console.log(`📁 Using SQLite database at: ${dbPath}`);
+
+  const sqlite = new Database(dbPath);
+  const db = drizzle(sqlite);
 
   console.log("⏳ Running migrations...");
 
   const start = Date.now();
-  await migrate(db, { migrationsFolder: "./lib/db/migrations" });
+  try {
+    migrate(db, { migrationsFolder: "./lib/db/migrations" });
+  } catch (err: any) {
+    // Ignore "already exists" errors for SQLite
+    if (!err.message?.includes("already exists")) {
+      throw err;
+    }
+    console.log("⚠️ Some tables already exist, skipping...");
+  }
   const end = Date.now();
 
   console.log("✅ Migrations completed in", end - start, "ms");
+
+  sqlite.close();
   process.exit(0);
 };
 

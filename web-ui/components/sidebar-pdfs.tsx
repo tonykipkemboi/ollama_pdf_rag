@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useCallback } from "react";
+import { usePathname } from "next/navigation";
 import { toast } from "sonner";
 import useSWR from "swr";
 import {
@@ -20,7 +21,7 @@ import {
   SidebarMenuItem,
   SidebarMenuButton,
 } from "@/components/ui/sidebar";
-import { FileText, Trash2 } from "lucide-react";
+import { FileText, Trash2, Check } from "lucide-react";
 import { fetcher } from "@/lib/utils";
 
 interface PDF {
@@ -34,6 +35,9 @@ interface PDF {
 }
 
 export function SidebarPDFs() {
+  const pathname = usePathname();
+  const chatId = pathname?.startsWith("/chat/") ? pathname.split("/")[2] : null;
+
   const { data: pdfs, mutate, isLoading } = useSWR<PDF[]>(
     "http://localhost:8001/api/v1/pdfs",
     fetcher,
@@ -42,8 +46,47 @@ export function SidebarPDFs() {
     }
   );
 
+  // Fetch PDFs linked to current chat
+  const { data: chatPdfsData, mutate: mutateChatPdfs } = useSWR<{ pdfIds: string[] }>(
+    chatId ? `/api/chat/${chatId}/pdfs` : null,
+    fetcher
+  );
+  const selectedPdfIds = chatPdfsData?.pdfIds || [];
+
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+
+  const togglePdfSelection = useCallback(async (pdfId: string) => {
+    if (!chatId) {
+      toast.error("Start a chat first to select PDFs");
+      return;
+    }
+
+    const isSelected = selectedPdfIds.includes(pdfId);
+
+    try {
+      if (isSelected) {
+        // Remove PDF from chat
+        await fetch(`/api/chat/${chatId}/pdfs`, {
+          method: "DELETE",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ pdfId }),
+        });
+        toast.success("PDF removed from chat");
+      } else {
+        // Add PDF to chat
+        await fetch(`/api/chat/${chatId}/pdfs`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ pdfId }),
+        });
+        toast.success("PDF added to chat");
+      }
+      mutateChatPdfs();
+    } catch (error) {
+      toast.error("Failed to update PDF selection");
+    }
+  }, [chatId, selectedPdfIds, mutateChatPdfs]);
 
   const handleDelete = async () => {
     const pdfToDelete = deleteId;
@@ -107,50 +150,72 @@ export function SidebarPDFs() {
     );
   }
 
+  // Show selected count if any
+  const selectedCount = selectedPdfIds.length;
+  const headerText = chatId
+    ? `PDFs (${selectedCount}/${pdfs.length} selected)`
+    : `PDFs (${pdfs.length})`;
+
   return (
     <>
       <SidebarGroup>
         <div className="px-2 py-1 text-sidebar-foreground/50 text-xs">
-          PDFs ({pdfs.length})
+          {headerText}
+          {chatId && selectedCount === 0 && (
+            <span className="ml-1 text-amber-500">• Click to select</span>
+          )}
         </div>
         <SidebarGroupContent>
           <SidebarMenu>
-            {pdfs.map((pdf) => (
-              <SidebarMenuItem key={pdf.pdf_id} className="group/pdf">
-                <div className="flex items-center justify-between">
-                  <SidebarMenuButton className="flex-1">
-                    <div className="flex items-center gap-2 overflow-hidden">
-                      <FileText className="h-4 w-4 flex-shrink-0" />
-                      <div className="flex flex-col overflow-hidden">
-                        <span className="truncate text-sm">{pdf.name}</span>
-                        <span className="text-xs text-zinc-500">
-                          {pdf.doc_count} chunks • {pdf.page_count} pages
-                        </span>
+            {pdfs.map((pdf) => {
+              const isSelected = selectedPdfIds.includes(pdf.pdf_id);
+              return (
+                <SidebarMenuItem key={pdf.pdf_id} className="group/pdf">
+                  <div className="flex items-center justify-between">
+                    <SidebarMenuButton
+                      className={`flex-1 ${isSelected ? "bg-primary/10" : ""}`}
+                      onClick={() => togglePdfSelection(pdf.pdf_id)}
+                    >
+                      <div className="flex items-center gap-2 overflow-hidden">
+                        <div className="relative">
+                          <FileText className={`h-4 w-4 flex-shrink-0 ${isSelected ? "text-primary" : ""}`} />
+                          {isSelected && (
+                            <Check className="absolute -right-1 -top-1 h-3 w-3 text-primary" />
+                          )}
+                        </div>
+                        <div className="flex flex-col overflow-hidden">
+                          <span className={`truncate text-sm ${isSelected ? "font-medium" : ""}`}>
+                            {pdf.name}
+                          </span>
+                          <span className="text-xs text-zinc-500">
+                            {pdf.doc_count} chunks • {pdf.page_count} pages
+                          </span>
+                        </div>
                       </div>
-                    </div>
-                  </SidebarMenuButton>
-                  <div
-                    className="ml-2 mr-2 cursor-pointer opacity-0 transition-opacity group-hover/pdf:opacity-100"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setDeleteId(pdf.pdf_id);
-                      setShowDeleteDialog(true);
-                    }}
-                    role="button"
-                    tabIndex={0}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter" || e.key === " ") {
-                        e.preventDefault();
+                    </SidebarMenuButton>
+                    <div
+                      className="ml-2 mr-2 cursor-pointer opacity-0 transition-opacity group-hover/pdf:opacity-100"
+                      onClick={(e) => {
+                        e.stopPropagation();
                         setDeleteId(pdf.pdf_id);
                         setShowDeleteDialog(true);
-                      }
-                    }}
-                  >
-                    <Trash2 className="h-4 w-4 text-zinc-500 hover:text-red-500" />
+                      }}
+                      role="button"
+                      tabIndex={0}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" || e.key === " ") {
+                          e.preventDefault();
+                          setDeleteId(pdf.pdf_id);
+                          setShowDeleteDialog(true);
+                        }
+                      }}
+                    >
+                      <Trash2 className="h-4 w-4 text-zinc-500 hover:text-red-500" />
+                    </div>
                   </div>
-                </div>
-              </SidebarMenuItem>
-            ))}
+                </SidebarMenuItem>
+              );
+            })}
           </SidebarMenu>
         </SidebarGroupContent>
       </SidebarGroup>

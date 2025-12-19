@@ -21,6 +21,8 @@ import { generateUUID } from "../utils";
 import {
   type Chat,
   chat,
+  chatPdf,
+  type ChatPdf,
   type DBMessage,
   document,
   message,
@@ -586,5 +588,96 @@ export async function getStreamIdsByChatId({ chatId }: { chatId: string }) {
       "bad_request:database",
       "Failed to get stream ids by chat id"
     );
+  }
+}
+
+// Chat PDF functions - link PDFs to specific chats
+export async function addPdfToChat({
+  chatId,
+  pdfId,
+}: {
+  chatId: string;
+  pdfId: string;
+}) {
+  try {
+    // Check if already exists
+    const [existing] = await db
+      .select()
+      .from(chatPdf)
+      .where(and(eq(chatPdf.chatId, chatId), eq(chatPdf.pdfId, pdfId)));
+
+    if (existing) {
+      return existing;
+    }
+
+    const [result] = await db
+      .insert(chatPdf)
+      .values({ chatId, pdfId })
+      .returning();
+    return result;
+  } catch (_error) {
+    throw new ChatSDKError("bad_request:database", "Failed to add PDF to chat");
+  }
+}
+
+export async function removePdfFromChat({
+  chatId,
+  pdfId,
+}: {
+  chatId: string;
+  pdfId: string;
+}) {
+  try {
+    return await db
+      .delete(chatPdf)
+      .where(and(eq(chatPdf.chatId, chatId), eq(chatPdf.pdfId, pdfId)));
+  } catch (_error) {
+    throw new ChatSDKError(
+      "bad_request:database",
+      "Failed to remove PDF from chat"
+    );
+  }
+}
+
+export async function getPdfsByChatId({
+  chatId,
+}: {
+  chatId: string;
+}): Promise<string[]> {
+  try {
+    const results = await db
+      .select({ pdfId: chatPdf.pdfId })
+      .from(chatPdf)
+      .where(eq(chatPdf.chatId, chatId))
+      .orderBy(asc(chatPdf.addedAt));
+
+    return results.map((r) => r.pdfId);
+  } catch (_error) {
+    throw new ChatSDKError(
+      "bad_request:database",
+      "Failed to get PDFs for chat"
+    );
+  }
+}
+
+export async function setChatPdfs({
+  chatId,
+  pdfIds,
+}: {
+  chatId: string;
+  pdfIds: string[];
+}) {
+  try {
+    // Delete existing associations
+    await db.delete(chatPdf).where(eq(chatPdf.chatId, chatId));
+
+    // Add new associations
+    if (pdfIds.length > 0) {
+      await db.insert(chatPdf).values(
+        pdfIds.map((pdfId) => ({ chatId, pdfId }))
+      );
+    }
+  } catch (_error) {
+    throw new ChatSDKError("bad_request:database", "Failed to set chat PDFs");
   }
 }

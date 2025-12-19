@@ -1,6 +1,15 @@
 import { ollamaChat } from "@/lib/ai/provider";
 import { getDefaultChatModel } from "@/lib/ai/models";
 import { createUIMessageStream, createUIMessageStreamResponse } from "ai";
+import { auth } from "@/app/(auth)/auth";
+import {
+  getChatById,
+  saveChat,
+  saveMessages,
+  getPdfsByChatId,
+  updateChatTitleById,
+} from "@/lib/db/queries";
+import { generateUUID } from "@/lib/utils";
 
 export const maxDuration = 60;
 
@@ -15,15 +24,28 @@ interface MessagePart {
 interface PostRequestBody {
   id: string;
   message: {
+    id?: string;
     role: string;
     parts: MessagePart[];
   };
   selectedChatModel?: string;
+  selectedVisibilityType?: string;
 }
 
 export async function POST(request: Request) {
   try {
     const body: PostRequestBody = await request.json();
+    const chatId = body.id;
+
+    // Get user session
+    const session = await auth();
+    if (!session?.user?.id) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+    const userId = session.user.id;
 
     // Use selected model or fetch default from available Ollama models
     const selectedChatModel = body.selectedChatModel || await getDefaultChatModel();
@@ -45,17 +67,52 @@ export async function POST(request: Request) {
       );
     }
 
+    // Check if chat exists, create if not
+    let chat = await getChatById({ id: chatId });
+    const isNewChat = !chat;
+
+    if (!chat) {
+      // Create new chat with first message as title (truncated)
+      const title = textContent.slice(0, 100) + (textContent.length > 100 ? "..." : "");
+      await saveChat({
+        id: chatId,
+        userId,
+        title,
+        visibility: (body.selectedVisibilityType as "private" | "public") || "private",
+      });
+      console.log("Created new chat:", chatId);
+    }
+
+    // Get PDFs linked to this chat (if any)
+    const chatPdfIds = await getPdfsByChatId({ chatId });
+    console.log("Chat PDF IDs:", chatPdfIds);
+
+    // Save user message
+    const userMessageId = body.message.id || generateUUID();
+    await saveMessages({
+      messages: [{
+        id: userMessageId,
+        chatId,
+        role: "user",
+        content: textContent, // Legacy field
+        parts: JSON.stringify(body.message.parts),
+        createdAt: new Date(),
+      }],
+    });
+    console.log("Saved user message:", userMessageId);
+
     console.log("Sending to backend:", {
       question: textContent,
       model: selectedChatModel,
+      pdfIds: chatPdfIds.length > 0 ? chatPdfIds : undefined,
     });
 
     // Build message history (for now, just the current message)
     const messages = [{ role: body.message.role, content: textContent }];
 
-    // Query the FastAPI backend
+    // Query the FastAPI backend with chat-specific PDFs
     console.log("Calling ollamaChat...");
-    const result = await ollamaChat(messages, selectedChatModel);
+    const result = await ollamaChat(messages, selectedChatModel, chatPdfIds.length > 0 ? chatPdfIds : undefined);
     console.log("Received result from backend:", {
       answerLength: result.answer.length,
       sourcesCount: result.sources.length,
@@ -74,6 +131,32 @@ export async function POST(request: Request) {
 
     console.log("Formatted response length:", formattedResponse.length);
     console.log("First 200 chars of response:", formattedResponse.substring(0, 200));
+
+    // Save assistant message
+    const assistantMessageId = generateUUID();
+    const assistantParts = [
+      { type: "text", text: formattedResponse },
+    ];
+
+    // Add reasoning parts if present
+    if (reasoningSteps.length > 0) {
+      assistantParts.unshift({
+        type: "reasoning",
+        text: reasoningSteps.join("\n"),
+      } as any);
+    }
+
+    await saveMessages({
+      messages: [{
+        id: assistantMessageId,
+        chatId,
+        role: "assistant",
+        content: formattedResponse, // Legacy field
+        parts: JSON.stringify(assistantParts),
+        createdAt: new Date(),
+      }],
+    });
+    console.log("Saved assistant message:", assistantMessageId);
 
     // Create a UI message stream using AI SDK
     console.log("Creating UI message stream...");

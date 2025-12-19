@@ -28,7 +28,8 @@ interface QueryResponse {
 
 export async function ollamaChat(
   messages: Message[],
-  model: string = "mistral:latest"
+  model: string = "mistral:latest",
+  pdfIds?: string[]
 ): Promise<QueryResponse> {
   const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8001";
 
@@ -36,14 +37,15 @@ export async function ollamaChat(
   const lastMessage = messages[messages.length - 1];
   const question = lastMessage.content;
 
-  // Query backend
+  // Query backend with optional PDF filter
   const response = await fetch(`${API_URL}/api/v1/query`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
       question,
       model,
-      session_id: null, // Generate new session or use existing
+      session_id: null,
+      pdf_ids: pdfIds, // Filter to specific PDFs if provided
     }),
   });
 

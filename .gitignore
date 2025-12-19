@@ -21,6 +21,8 @@ ENV/
 
 # Project specific
 data/vectors/
+data/*.db
+web-ui/data/*.db
 *.log
 .cache
 .pytest_cache/

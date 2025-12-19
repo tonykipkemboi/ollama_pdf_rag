@@ -26,9 +26,17 @@ db.exec(`
     id TEXT PRIMARY KEY,
     chat_id TEXT NOT NULL,
     role TEXT NOT NULL,
-    content TEXT NOT NULL,
-    sources TEXT,
+    content TEXT NOT NULL DEFAULT '',
+    parts TEXT,
     created_at INTEGER NOT NULL,
+    FOREIGN KEY (chat_id) REFERENCES chat(id)
+  );
+
+  CREATE TABLE IF NOT EXISTS chat_pdf (
+    chat_id TEXT NOT NULL,
+    pdf_id TEXT NOT NULL,
+    added_at INTEGER NOT NULL DEFAULT (unixepoch()),
+    PRIMARY KEY (chat_id, pdf_id),
     FOREIGN KEY (chat_id) REFERENCES chat(id)
   );
 

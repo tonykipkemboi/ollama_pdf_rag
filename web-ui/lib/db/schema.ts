@@ -22,13 +22,24 @@ export const message = sqliteTable("message", {
     .notNull()
     .references(() => chat.id),
   role: text("role").notNull(),
-  content: text("content").notNull(),
-  sources: text("sources"), // JSON string for source info
+  content: text("content").notNull().default(""), // Legacy - for backward compatibility
+  parts: text("parts"), // JSON string for AI SDK message parts
   createdAt: integer("created_at", { mode: "timestamp" }).notNull().$defaultFn(() => new Date()),
 });
 
+// Link PDFs to specific chats
+export const chatPdf = sqliteTable("chat_pdf", {
+  chatId: text("chat_id")
+    .notNull()
+    .references(() => chat.id),
+  pdfId: text("pdf_id").notNull(),
+  addedAt: integer("added_at", { mode: "timestamp" }).notNull().$defaultFn(() => new Date()),
+});
+
+export type ChatPdf = InferSelectModel<typeof chatPdf>;
+
 export type Message = InferSelectModel<typeof message>;
-export type DBMessage = Message;
+export type DBMessage = Message & { parts: any }; // parts is JSON parsed
 
 // Stub tables for compatibility with Vercel AI chatbot queries
 export const user = sqliteTable("user", {
