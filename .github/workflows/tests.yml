@@ -11,7 +11,8 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: ["3.9", "3.10", "3.11"]
+        # langchain 1.0+ requires Python 3.10+
+        python-version: ["3.10", "3.11", "3.12"]
       fail-fast: false  # Continue with other versions if one fails
 
     steps:
@@ -27,14 +28,8 @@ jobs:
         sudo apt-get update
         sudo apt-get install -y build-essential
 
-    - name: Install Ollama
-      run: |
-        curl -fsSL https://ollama.com/install.sh | sh
-        ollama serve &
-        sleep 15  # Give more time for Ollama to start
-        ollama pull llama3.2
-        ollama pull nomic-embed-text
-      continue-on-error: true  # Don't fail if model pull has issues
+    # Skip Ollama installation in CI - tests use mocks
+    # Pulling models takes too long and fills disk space
     
     - name: Install Python dependencies
       run: |
@@ -44,7 +39,7 @@ jobs:
     
     - name: Run tests with coverage
       run: |
-        pytest tests/ --cov=src --cov-report=html --cov-report=term
+        pytest tests/ --cov=src --cov-report=html --cov-report=term -v
       env:
         PYTHONPATH: ${{ github.workspace }}
 
@@ -55,4 +50,4 @@ jobs:
         name: test-results-${{ matrix.python-version }}
         path: |
           htmlcov
-        if-no-files-found: warn  # Don't fail if no coverage files 
+        if-no-files-found: warn  # Don't fail if no coverage files
