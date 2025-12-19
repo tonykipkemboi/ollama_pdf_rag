@@ -3,7 +3,7 @@ import logging
 from typing import Any, Dict
 from langchain_core.runnables import RunnablePassthrough
 from langchain_core.output_parsers import StrOutputParser
-from langchain.retrievers.multi_query import MultiQueryRetriever
+from langchain_classic.retrievers.multi_query import MultiQueryRetriever
 from .llm import LLMManager
 
 logger = logging.getLogger(__name__)

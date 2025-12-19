@@ -3,7 +3,7 @@ import unittest
 from unittest.mock import Mock, patch, MagicMock
 from src.core.rag import RAGPipeline
 from langchain_core.documents import Document
-from langchain.retrievers.multi_query import MultiQueryRetriever
+from langchain_classic.retrievers.multi_query import MultiQueryRetriever
 from langchain_core.output_parsers import StrOutputParser
 
 class TestRAGPipeline(unittest.TestCase):
@@ -16,7 +16,7 @@ class TestRAGPipeline(unittest.TestCase):
         self.mock_llm_manager = Mock()
         
         # Patch MultiQueryRetriever
-        self.retriever_patcher = patch('langchain.retrievers.multi_query.MultiQueryRetriever.from_llm')
+        self.retriever_patcher = patch('langchain_classic.retrievers.multi_query.MultiQueryRetriever.from_llm')
         self.mock_from_llm = self.retriever_patcher.start()
         self.mock_retriever = Mock()
         self.mock_from_llm.return_value = self.mock_retriever

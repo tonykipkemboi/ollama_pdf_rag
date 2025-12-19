@@ -1,7 +1,7 @@
 """LLM configuration and setup."""
 import logging
 from langchain_ollama.chat_models import ChatOllama
-from langchain.prompts import ChatPromptTemplate, PromptTemplate
+from langchain_core.prompts import ChatPromptTemplate, PromptTemplate
 
 logger = logging.getLogger(__name__)
 
