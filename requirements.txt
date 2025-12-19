@@ -12,7 +12,7 @@ langchain-chroma>=0.2.0
 unstructured>=0.16.12
 unstructured[all-docs]>=0.16.12
 onnx>=1.17.0
-protobuf==5.29.2
+protobuf==5.29.5
 chromadb>=0.4.22
 Pillow==10.4.0
 numpy==1.26.4
