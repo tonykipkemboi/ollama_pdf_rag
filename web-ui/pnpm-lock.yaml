@@ -5,6 +5,7 @@ settings:
   excludeLinksFromLockfile: false
 
 overrides:
+  '@trpc/server': '>=11.8.0'
   undici: '>=5.29.0'
   prismjs: '>=1.30.0'
   esbuild: '>=0.25.0'
@@ -2013,8 +2014,8 @@ packages:
     peerDependencies:
       tailwindcss: '>=3.0.0 || insiders || >=4.0.0-alpha.20 || >=4.0.0-beta.1'
 
-  '@trpc/server@11.7.1':
-    resolution: {integrity: sha512-N3U8LNLIP4g9C7LJ/sLkjuPHwqlvE3bnspzC4DEFVdvx2+usbn70P80E3wj5cjOTLhmhRiwJCSXhlB+MHfGeCw==}
+  '@trpc/server@11.8.0':
+    resolution: {integrity: sha512-DphyQnLuyX2nwJCQGWQ9zYz4hZGvRhSBqDhQ0SH3tDhQ3PU4u68xofA0pJ741Ir4InEAFD+TtJVLAQy+wVOkiQ==}
     peerDependencies:
       typescript: '>=5.7.2'
 
@@ -5944,7 +5945,7 @@ snapshots:
       postcss-selector-parser: 6.0.10
       tailwindcss: 4.1.16
 
-  '@trpc/server@11.7.1(typescript@5.8.2)':
+  '@trpc/server@11.8.0(typescript@5.8.2)':
     dependencies:
       typescript: 5.8.2
 
@@ -8432,7 +8433,7 @@ snapshots:
 
   trpc-cli@0.10.2(typescript@5.8.2):
     dependencies:
-      '@trpc/server': 11.7.1(typescript@5.8.2)
+      '@trpc/server': 11.8.0(typescript@5.8.2)
       '@types/omelette': 0.4.5
       commander: 14.0.2
       picocolors: 1.1.1

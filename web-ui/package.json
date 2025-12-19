@@ -122,6 +122,7 @@
   "packageManager": "pnpm@9.12.3",
   "pnpm": {
     "overrides": {
+      "@trpc/server": ">=11.8.0",
       "undici": ">=5.29.0",
       "prismjs": ">=1.30.0",
       "esbuild": ">=0.25.0",
