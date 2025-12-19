@@ -119,5 +119,13 @@
     "typescript": "^5.8.2",
     "ultracite": "5.3.9"
   },
-  "packageManager": "pnpm@9.12.3"
+  "packageManager": "pnpm@9.12.3",
+  "pnpm": {
+    "overrides": {
+      "undici": ">=5.29.0",
+      "prismjs": ">=1.30.0",
+      "esbuild": ">=0.25.0",
+      "mdast-util-to-hast": ">=13.2.1"
+    }
+  }
 }
