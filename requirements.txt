@@ -1,5 +1,5 @@
 ollama>=0.6.0
-streamlit==1.40.0
+streamlit==1.54.0
 pdfplumber>=0.11.8
 pdfminer.six==20251107
 langchain==1.0.0
