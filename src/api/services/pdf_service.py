@@ -1,9 +1,9 @@
 """PDF processing service."""
 import os
 from datetime import datetime
-from pathlib import Path
+from pathlib import Path, PurePosixPath, PureWindowsPath
 from typing import List, Optional
-from fastapi import UploadFile
+from fastapi import HTTPException, UploadFile
 from sqlalchemy.orm import Session
 
 from ...core.document import DocumentProcessor
@@ -25,6 +25,55 @@ class PDFService:
         self.storage_dir = Path(settings.PDF_STORAGE_DIR)
         self.storage_dir.mkdir(parents=True, exist_ok=True)
 
+    @staticmethod
+    def _sanitize_filename(filename: str) -> str:
+        """Strip directory components from a filename to prevent path traversal.
+
+        Handles both POSIX (``/``) and Windows (``\\``) separators regardless
+        of the host OS.
+
+        Args:
+            filename: Raw filename (potentially from user input)
+
+        Returns:
+            Basename only, with all directory components removed
+
+        Raises:
+            HTTPException: If the resulting basename is empty
+        """
+        # Use PureWindowsPath to split on both / and \ on any platform,
+        # then take only the final component.
+        sanitized = PureWindowsPath(filename).name
+        # Defence-in-depth: also run through PurePosixPath
+        sanitized = PurePosixPath(sanitized).name
+        if not sanitized or sanitized in (".", ".."):
+            raise HTTPException(
+                status_code=400,
+                detail="Invalid filename"
+            )
+        return sanitized
+
+    def _safe_file_path(self, filename: str) -> Path:
+        """Build a file path guaranteed to be within self.storage_dir.
+
+        Args:
+            filename: Already-sanitized filename
+
+        Returns:
+            Resolved Path within self.storage_dir
+
+        Raises:
+            HTTPException: If the resolved path escapes the storage directory
+        """
+        file_path = (self.storage_dir / filename).resolve()
+        storage_resolved = self.storage_dir.resolve()
+        if not str(file_path).startswith(str(storage_resolved) + os.sep):
+            raise HTTPException(
+                status_code=400,
+                detail="Invalid filename"
+            )
+        return file_path
+
     async def upload_and_process(
         self,
         file: UploadFile,
@@ -39,11 +88,14 @@ class PDFService:
         Returns:
             PDFMetadata: Metadata for the processed PDF
         """
-        # Generate unique ID
-        pdf_id = self._generate_pdf_id(file.filename)
+        # Sanitize filename to prevent path traversal (CWE-22)
+        safe_filename = self._sanitize_filename(file.filename)
 
-        # Save file
-        file_path = self.storage_dir / f"{pdf_id}_{file.filename}"
+        # Generate unique ID
+        pdf_id = self._generate_pdf_id(safe_filename)
+
+        # Save file — build path from sanitized name and verify containment
+        file_path = self._safe_file_path(f"{pdf_id}_{safe_filename}")
         with open(file_path, "wb") as f:
             content = await file.read()
             f.write(content)
@@ -56,13 +108,13 @@ class PDFService:
         for i, chunk in enumerate(chunks):
             chunk.metadata.update({
                 "pdf_id": pdf_id,
-                "pdf_name": file.filename,
+                "pdf_name": safe_filename,
                 "chunk_index": i,
-                "source_file": file.filename
+                "source_file": safe_filename
             })
 
         # Create vector DB collection
-        collection_name = f"pdf_{abs(hash(file.filename + pdf_id))}"
+        collection_name = f"pdf_{abs(hash(safe_filename + pdf_id))}"
         vector_db = self.vector_store.create_vector_db(
             documents=chunks,
             collection_name=collection_name
@@ -71,7 +123,7 @@ class PDFService:
         # Store metadata in database
         pdf_metadata = PDFMetadata(
             pdf_id=pdf_id,
-            name=file.filename,
+            name=safe_filename,
             collection_name=collection_name,
             upload_timestamp=datetime.now(),
             doc_count=len(chunks),
@@ -137,9 +189,12 @@ class PDFService:
         )
         vector_db.delete_collection()
 
-        # Delete file if it exists
+        # Delete file if it exists — verify path is within storage dir first
         if pdf.file_path and os.path.exists(pdf.file_path):
-            os.remove(pdf.file_path)
+            resolved_path = os.path.realpath(pdf.file_path)
+            storage_resolved = os.path.realpath(self.storage_dir)
+            if resolved_path.startswith(storage_resolved + os.sep):
+                os.remove(pdf.file_path)
 
         # Delete metadata from database
         db.delete(pdf)
