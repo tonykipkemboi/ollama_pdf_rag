@@ -67,7 +67,7 @@ class PDFService:
         """
         file_path = (self.storage_dir / filename).resolve()
         storage_resolved = self.storage_dir.resolve()
-        if not str(file_path).startswith(str(storage_resolved) + os.sep):
+        if not file_path.is_relative_to(storage_resolved) or file_path == storage_resolved:
             raise HTTPException(
                 status_code=400,
                 detail="Invalid filename"
@@ -190,11 +190,13 @@ class PDFService:
         vector_db.delete_collection()
 
         # Delete file if it exists — verify path is within storage dir first
-        if pdf.file_path and os.path.exists(pdf.file_path):
-            resolved_path = os.path.realpath(pdf.file_path)
-            storage_resolved = os.path.realpath(self.storage_dir)
-            if resolved_path.startswith(storage_resolved + os.sep):
-                os.remove(pdf.file_path)
+        if pdf.file_path:
+            file_path = Path(pdf.file_path).resolve()
+            storage_resolved = self.storage_dir.resolve()
+            if not (file_path.is_relative_to(storage_resolved) and file_path != storage_resolved):
+                raise HTTPException(status_code=400, detail="Invalid file path")
+            if file_path.exists():
+                os.remove(file_path)
 
         # Delete metadata from database
         db.delete(pdf)
