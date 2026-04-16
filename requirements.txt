@@ -6,7 +6,7 @@ langchain==1.0.0
 langchain-core>=1.0.0
 langchain-ollama==1.0.1
 langchain_community>=0.4.1
-langchain_text_splitters==1.0.0
+langchain_text_splitters==1.1.2
 langchain-classic==1.0.0
 langchain-chroma>=0.2.0
 unstructured>=0.16.12
