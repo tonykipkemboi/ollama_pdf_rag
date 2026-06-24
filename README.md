@@ -221,3 +221,20 @@ This project is open source and available under the MIT License.
 Built with ❤️ by [Tony Kipkemboi](https://tonykipkemboi.com)
 
 Follow me on [X](https://x.com/tonykipkemboi) | [LinkedIn](https://www.linkedin.com/in/tonykipkemboi/) | [YouTube](https://www.youtube.com/@tonykipkemboi) | [GitHub](https://github.com/tonykipkemboi)
+
+
+## Troubleshooting
+
+If you see errors related to embedding models, install the required model:
+
+```bash
+ollama pull nomic-embed-text
+```
+
+Verify it is installed:
+
+```bash
+ollama list
+```
+
+Make sure `nomic-embed-text` appears in the list.
