@@ -135,6 +135,19 @@ jupyter notebook
 ```
 Open `notebooks/experiments/updated_rag_notebook.ipynb` to experiment with the code.
 
+## Docker
+
+You can run the FastAPI backend inside Docker for a more consistent setup.
+
+### Prerequisites
+- Docker installed on your machine
+- Ollama running locally and accessible from the container
+
+### Build the image
+
+```bash
+docker build -t ollama-pdf-rag-api .
+
 ## 💡 Usage
 
 ### Next.js Interface
