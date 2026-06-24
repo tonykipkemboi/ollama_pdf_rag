@@ -1,0 +1,13 @@
+.git
+.github
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+.env
+venv
+.venv
+node_modules
+web-ui/node_modules
+data/vectors
+data/pdfs
