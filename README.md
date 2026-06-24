@@ -221,3 +221,52 @@ This project is open source and available under the MIT License.
 Built with ❤️ by [Tony Kipkemboi](https://tonykipkemboi.com)
 
 Follow me on [X](https://x.com/tonykipkemboi) | [LinkedIn](https://www.linkedin.com/in/tonykipkemboi/) | [YouTube](https://www.youtube.com/@tonykipkemboi) | [GitHub](https://github.com/tonykipkemboi)
+
+
+## Troubleshooting: Missing Ollama Embedding Models
+
+During setup, you may run into errors if the required embedding model has not been downloaded locally. This project uses the `nomic-embed-text` model for generating embeddings.
+
+### Install the model
+
+Run the following command:
+
+```bash
+ollama pull nomic-embed-text
+```
+
+### Check installed models
+
+To verify that the model is available on your system:
+
+```bash
+ollama list
+```
+
+You should see `nomic-embed-text` in the list of installed models.
+
+### Common issues
+
+#### Model not found
+
+If you receive an error indicating that the embedding model cannot be found, download it using:
+
+```bash
+ollama pull nomic-embed-text
+```
+
+After the download completes, restart the application and try again.
+
+#### Ollama service is not running
+
+Make sure Ollama is running before starting the application. If Ollama is stopped, the project will not be able to access the embedding model.
+
+### Verify the installation
+
+You can test whether the model is installed correctly by running:
+
+```bash
+ollama run nomic-embed-text
+```
+
+If the command starts successfully, the model has been installed correctly and is ready to use.
