@@ -26,13 +26,16 @@ A modern Next.js frontend for chatting with your PDF documents locally using Oll
 ```bash
 pnpm install
 ```
-
-2. Set up the database:
+2. Set up environment variables:
+```bash
+cp .env.example .env
+```
+3. Set up the database:
 ```bash
 pnpm db:migrate
 ```
 
-3. Start the development server:
+4. Start the development server:
 ```bash
 pnpm dev
 ```
