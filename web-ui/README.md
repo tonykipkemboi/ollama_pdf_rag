@@ -26,7 +26,7 @@ A modern Next.js frontend for chatting with your PDF documents locally using Oll
 ```bash
 pnpm install
 ```
-2.Set up environment variable
+2. Set up environment variables:
 ```bash
 cp .env.example .env
 ```
